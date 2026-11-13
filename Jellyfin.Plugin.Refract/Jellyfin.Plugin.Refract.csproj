@@ -22,6 +22,7 @@
     <EmbeddedResource Include="Web/refract.js" />
     <EmbeddedResource Include="Web/link.html" />
     <EmbeddedResource Include="Web/widget.js" />
+    <EmbeddedResource Include="Web/flow.js" />
     <EmbeddedResource Include="Web/qrcode.js" />
   </ItemGroup>
 

@@ -18,9 +18,6 @@ internal static class MenuInjection
 {
     private const string Marker = "id=\"refract-link-button\"";
 
-    private static ILogger _logger;
-    private static int _calls;
-
     /// <summary>
     /// Registers the index.html transformation when File Transformation is installed.
     /// Call it once, after every plugin loaded, so its service provider exists.
@@ -28,7 +25,6 @@ internal static class MenuInjection
     /// <param name="logger">The plugin logger.</param>
     public static void Register(ILogger logger)
     {
-        _logger = logger;
         try
         {
             var fileTransformation = AssemblyLoadContext.All
@@ -100,31 +96,14 @@ internal static class MenuInjection
             return html;
         }
 
-        int call = System.Threading.Interlocked.Increment(ref _calls);
-        if (call > 5)
-        {
-            call = -1;
-        }
-
         if (html is null || html.Contains(Marker, StringComparison.Ordinal))
         {
-            if (call > 0)
-            {
-                _logger?.LogInformation("Refract: index.html pass {Call}, marker already there ({Length} characters)", call, html == null ? -1 : html.Length);
-            }
-
             return html;
         }
 
         var script = "<script " + Marker + ">" + Script() + "</script>";
         var head = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-        var patched = head < 0 ? html + script : html.Insert(head, script);
-        if (call > 0)
-        {
-            _logger?.LogInformation("Refract: index.html pass {Call}, {In} characters in, {Out} characters out", call, html.Length, patched.Length);
-        }
-
-        return patched;
+        return head < 0 ? html + script : html.Insert(head, script);
     }
 
     // Loads the widget script, which builds the button and the modal itself. The
@@ -137,7 +116,8 @@ internal static class MenuInjection
         return
             "(function(){var b=location.pathname.replace(/\\/web\\/.*$/,'');" +
             "if(window.__refractWidget)return;window.__refractWidget=1;" +
-            "var s=document.createElement('script');s.src=b+'/Refract/Widget?v=" + version + "';s.async=true;" +
-            "document.head.appendChild(s)})();";
+            "var f=document.createElement('script');f.src=b+'/Refract/Flow?v=" + version + "';f.async=true;" +
+            "f.onload=function(){var s=document.createElement('script');s.src=b+'/Refract/Widget?v=" + version + "';s.async=true;document.head.appendChild(s)};" +
+            "document.head.appendChild(f)})();";
     }
 }

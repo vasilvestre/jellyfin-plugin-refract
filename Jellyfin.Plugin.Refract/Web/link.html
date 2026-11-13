@@ -23,6 +23,7 @@
         .warn { color: #ff9f7a; }
         .hide { display: none !important; }
     </style>
+    <script src="Flow?v=__VERSION__"></script>
 </head>
 <body>
 <main>
@@ -52,7 +53,7 @@
     const client = 'MediaBrowser Client="Refract", Device="Web", DeviceId="refract-link", Version="1.0.6.0"';
     let token = null;
     let userId = null;
-    let timer = null;
+    let pollStop = null;
 
     const show = (id, on) => document.getElementById(id).classList.toggle('hide', !on);
 
@@ -69,46 +70,32 @@
     }
 
     function stop() {
-        if (timer) { clearTimeout(timer); timer = null; }
+        if (pollStop) { pollStop(); pollStop = null; }
     }
 
-    // Jellyfin 12 accepts the MediaBrowser header; the legacy X-Emby-Token is kept
-    // as a fallback so either form authenticates.
-    const auth = () => ({ 'X-Emby-Token': token, 'Authorization': client + ', Token="' + token + '"' });
+    // The auth headers, fetch wrapper and approval poll live in flow.js, shared
+    // with the in-page widget, so they stay in sync.
+    const auth = () => window.refractFlow.headers(token, client);
 
-    async function api(path, init) {
-        const headers = Object.assign(auth(), (init && init.headers) || {});
-        const response = await fetch(base + path, Object.assign({}, init, { headers }));
-        if (!response.ok) { throw new Error(path + ' answered ' + response.status); }
-        return response.status === 204 ? null : response.json();
+    function api(path, init) {
+        return window.refractFlow.request(base, client, token, path, init);
     }
 
-    async function poll(seconds) {
+    function poll(seconds) {
         stop();
-        let delay = Math.max(Number(seconds) || 5, 5);
-        const tick = async () => {
-            try {
-                const result = await api('/Refract/Users/' + userId + '/PollAuthorizationStatus');
-                if (result.status === 'authorized') {
-                    stop();
-                    localStorage.setItem('refract-linked', '1');
-                    step('Approved. You can close this page.');
-                    return;
-                }
-                if (result.status === 'denied' || result.status === 'expired') {
-                    stop();
-                    step(result.status === 'denied' ? 'Refused in the Refract app.' : 'The code expired. Reload the page.');
-                    show('done', true);
-                    return;
-                }
-                if (result.status === 'slow_down') { delay += 5; }
-                document.getElementById('stepText').textContent = 'Waiting for approval.';
-            } catch (error) {
-                delay += 5;
+        pollStop = window.refractFlow.poll(base, client, token, userId, seconds, (status, detail) => {
+            if (status === 'authorized') {
+                localStorage.setItem('refract-linked', '1');
+                step('Approved. You can close this page.');
+                return;
             }
-            timer = setTimeout(tick, delay * 1000);
-        };
-        tick();
+            if (status === 'denied' || status === 'expired') {
+                step(status === 'denied' ? 'Refused in the Refract app.' : 'The code expired. Reload the page.');
+                show('done', true);
+                return;
+            }
+            document.getElementById('stepText').textContent = 'Waiting for approval.';
+        });
     }
 
     async function authorize() {

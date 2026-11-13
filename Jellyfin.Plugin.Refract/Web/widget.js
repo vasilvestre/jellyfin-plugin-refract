@@ -6,7 +6,7 @@
     var client = 'MediaBrowser Client="Refract", Device="Web", DeviceId="refract-widget", Version="1.0.7.0"';
     var token = null;
     var userId = null;
-    var timer = null;
+    var pollStop = null;
     var captured = null;
     var isLinked = null;
     var missingCache = null;
@@ -59,10 +59,7 @@
     }());
 
     function auth() {
-        return {
-            'X-Emby-Token': token,
-            'Authorization': client + ', Token="' + token + '"'
-        };
+        return window.refractFlow.headers(token, client);
     }
 
     // Jellyfin keeps one entry per server in this key. An old entry can hold a
@@ -76,15 +73,8 @@
         }
     }
 
-    async function call(path, init) {
-        var response = await fetch(base + path, Object.assign({}, init, {
-            headers: Object.assign(auth(), (init && init.headers) || {})
-        }));
-        if (!response.ok) {
-            throw new Error(path + ' answered ' + response.status);
-        }
-
-        return response.status === 204 ? null : response.json();
+    function call(path, init) {
+        return window.refractFlow.request(base, client, token, path, init);
     }
 
     async function adoptSession() {
@@ -124,9 +114,9 @@
     }
 
     function stop() {
-        if (timer) {
-            clearTimeout(timer);
-            timer = null;
+        if (pollStop) {
+            pollStop();
+            pollStop = null;
         }
     }
 
@@ -329,50 +319,31 @@
         }
     }
 
-    async function poll(seconds) {
+    function poll(seconds) {
         stop();
-        var delay = Math.max(Number(seconds) || 5, 5);
-        var tick = async function () {
-            try {
-                console.debug('refract: polling');
-                var status = (await call('/Refract/Users/' + userId + '/PollAuthorizationStatus')).status;
-                if (status === 'authorized') {
-                    stop();
-                    isLinked = true;
-                    linked(document.getElementById('refract-body'));
-                    mount();
-                    return;
-                }
-
-                if (status === 'denied' || status === 'expired') {
-                    stop();
-                    var target = document.getElementById('refract-body');
-                    target.innerHTML = '';
-                    note(target, status === 'denied' ? t('denied') : t('expired'), '#ff9f7a');
-                    button(target, t('again'), function () { start(target); });
-                    return;
-                }
-
-                if (status === 'slow_down') {
-                    delay += 5;
-                }
-
-                var state = document.getElementById('refract-state');
-                if (state) {
-                    state.textContent = t('waitingFor') + status + ').';
-                }
-            } catch (error) {
-                delay += 5;
-                var failed = document.getElementById('refract-state');
-                if (failed) {
-                    failed.textContent = t('retrying') + error.message;
-                }
+        pollStop = window.refractFlow.poll(base, client, token, userId, seconds, function (status, detail) {
+            if (status === 'authorized') {
+                isLinked = true;
+                linked(document.getElementById('refract-body'));
+                mount();
+                return;
             }
 
-            timer = setTimeout(tick, delay * 1000);
-        };
+            if (status === 'denied' || status === 'expired') {
+                var target = document.getElementById('refract-body');
+                target.innerHTML = '';
+                note(target, status === 'denied' ? t('denied') : t('expired'), '#ff9f7a');
+                button(target, t('again'), function () { start(target); });
+                return;
+            }
 
-        tick();
+            var state = document.getElementById('refract-state');
+            if (state) {
+                state.textContent = status === 'retry'
+                    ? t('retrying') + detail
+                    : t('waitingFor') + status + ').';
+            }
+        });
     }
 
     function linked(target) {
