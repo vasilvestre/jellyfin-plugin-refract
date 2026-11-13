@@ -23,7 +23,6 @@
         .warn { color: #ff9f7a; }
         .hide { display: none !important; }
     </style>
-    <script src="Flow?v=__VERSION__"></script>
 </head>
 <body>
 <main>
@@ -51,6 +50,7 @@
 <script>
     const base = location.pathname.replace(/\/Refract\/Link.*$/, '');
     const client = 'MediaBrowser Client="Refract", Device="Web", DeviceId="refract-link", Version="1.0.6.0"';
+    const REFRACT_VERSION = "__VERSION__";
     let token = null;
     let userId = null;
     let pollStop = null;
@@ -107,44 +107,53 @@
         poll(result.interval);
     }
 
-    document.getElementById('login').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const submit = document.getElementById('submit');
-        submit.disabled = true;
-        document.querySelector('.warn')?.remove();
-        try {
-            const auth = await fetch(base + '/Users/AuthenticateByName', {
-                method: 'POST',
-                headers: { 'Authorization': client, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    Username: document.getElementById('username').value,
-                    Pw: document.getElementById('password').value
-                })
-            });
-            if (!auth.ok) { throw new Error('Jellyfin refused those credentials.'); }
-            const session = await auth.json();
-            token = session.AccessToken;
-            userId = session.User.Id;
-            document.getElementById('password').value = '';
-            const me = await api('/Refract/Me');
-            if (me.linked) {
-                localStorage.setItem('refract-linked', '1');
-                step('Your account is already linked. You can close this page.');
-                show('done', true);
-                return;
+    function bootstrap() {
+        document.getElementById('login').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const submit = document.getElementById('submit');
+            submit.disabled = true;
+            document.querySelector('.warn')?.remove();
+            try {
+                const auth = await fetch(base + '/Users/AuthenticateByName', {
+                    method: 'POST',
+                    headers: { 'Authorization': client, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        Username: document.getElementById('username').value,
+                        Pw: document.getElementById('password').value
+                    })
+                });
+                if (!auth.ok) { throw new Error('Jellyfin refused those credentials.'); }
+                const session = await auth.json();
+                token = session.AccessToken;
+                userId = session.User.Id;
+                document.getElementById('password').value = '';
+                const me = await api('/Refract/Me');
+                if (me.linked) {
+                    localStorage.setItem('refract-linked', '1');
+                    step('Your account is already linked. You can close this page.');
+                    show('done', true);
+                    return;
+                }
+                await authorize();
+            } catch (error) {
+                const note = document.createElement('p');
+                note.className = 'note warn';
+                note.textContent = error.message;
+                document.querySelector('main').appendChild(note);
+                submit.disabled = false;
             }
-            await authorize();
-        } catch (error) {
-            const note = document.createElement('p');
-            note.className = 'note warn';
-            note.textContent = error.message;
-            document.querySelector('main').appendChild(note);
-            submit.disabled = false;
-        }
-    });
+        });
 
-    document.getElementById('done').addEventListener('click', () => location.reload());
-    window.addEventListener('beforeunload', () => { token = null; stop(); });
+        document.getElementById('done').addEventListener('click', () => location.reload());
+        window.addEventListener('beforeunload', () => { token = null; stop(); });
+    }
+
+    // Load the shared flow after the page knows its base path, so the trailing
+    // slash on /Refract/Link/ does not resolve the script to /Refract/Link/Flow.
+    const flow = document.createElement('script');
+    flow.src = base + '/Refract/Flow?v=' + REFRACT_VERSION;
+    flow.onload = bootstrap;
+    document.head.appendChild(flow);
 </script>
 </body>
 </html>
