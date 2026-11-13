@@ -19,10 +19,10 @@ public sealed class RefractAuthenticator : IDisposable
     /// Client id of the public Refract app registered for this plugin.
     /// </summary>
     /// <remarks>
-    /// TODO(vasilvestre): paste the client id of the "Jellyfin" app registered in Refract,
-    /// under Access and connected apps. A public client needs no secret.
+    /// A public client holds no secret: PKCE and the device code protect the exchange,
+    /// so this value is safe to publish.
     /// </remarks>
-    public const string ClientId = "REFRACT_CLIENT_ID";
+    public const string ClientId = "WCPKGjzKDEEOYZSgrhsYtJoeElkENStp";
 
     private const string ApiResource = "https://getrefract.app/v1";
     private const string TokenEndpoint = "https://getrefract.app/api/auth/oauth2/token";

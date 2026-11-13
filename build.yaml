@@ -15,3 +15,4 @@ artifacts:
   - "Jellyfin.Plugin.Refract.dll"
 changelog: |-
   - First release: one-way scrobbling from Jellyfin to Refract.
+  - Sign in with Refract through the device code, one account per Jellyfin user.

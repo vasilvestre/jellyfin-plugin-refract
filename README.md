@@ -9,18 +9,21 @@ removes a movie play by its own play id, and the plugin keeps no copy of it.
 ## Requirements
 
 - Jellyfin 12.1 or newer.
-- A Refract API key. In the app open **Integrations**, then **Access and connected
-  apps**, and create a key with the scopes `profile:read`, `library:read`,
-  `history:read`, `library:write`, `history:write`.
-  Refract opens the API to a first group of members only. A member outside it
-  cannot create a key.
+- A Refract account. Refract opens its API to a first group of members only: a
+  member outside it cannot approve the app.
+
+No key to create and no secret. Each user signs in once from the plugin settings.
 
 ## Install
 
 1. Build the plugin or download `Jellyfin.Plugin.Refract.dll`.
 2. Create `plugins/Refract_1.0.0.0/` in the Jellyfin data directory.
 3. Copy the DLL into that directory and restart Jellyfin.
-4. Open **Dashboard**, **Plugins**, **Refract**, paste the key, and save.
+4. Open **Dashboard**, **Plugins**, **Refract**.
+5. Pick a Jellyfin user and click **Sign in to Refract**.
+6. Open the address shown, approve the code, and wait for the page to confirm.
+   Repeat for each user who wants their own Refract account.
+
 
 ## How a title is matched
 
@@ -33,6 +36,18 @@ Jellyfin keeps no TMDB id on episodes, so the plugin resolves them in two steps:
 Anime is where those orders differ. The plugin tries `tmdb`, then `tvdb`, then
 `absolute`, and remembers the first combination that matched the series. Enable
 debug logging on the plugin to see each attempt.
+
+## Sign-in
+
+The plugin signs in with the OAuth 2.1 device code grant, RFC 8628. A Jellyfin
+plugin runs on the server and has no browser, so the member approves a short code
+on their phone at `getrefract.app/device`. The client is public: it holds no
+secret, and the tokens belong to the member, who can revoke them from the Refract
+app at any time.
+
+The access token lasts one hour. The plugin refreshes it before it expires and
+stores the rotated refresh token before using it. A refused refresh means the
+member disconnected the app: the plugin drops the link and stops syncing.
 
 ## Known limits
 
