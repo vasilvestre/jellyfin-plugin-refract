@@ -60,7 +60,9 @@ administrators only, which is why a member cannot reach that page.
 
 With it, the member does everything from the player:
 
-1. Click **Link Refract** in the bottom right corner.
+1. Click **Link Refract** in the bottom right corner. The button appears only for a
+   member who has not linked yet, and never on the plugin page, which has its own
+   controls.
 
    ![The link button in the web client](img/link-button.png)
 
