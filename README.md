@@ -8,6 +8,7 @@ removes a movie play by its own play id, and the plugin keeps no copy of it.
 
 ## Requirements
 
+- Outbound HTTPS to `https://getrefract.app` from the Jellyfin server. Nothing else, no proxy.
 - Jellyfin 12.1 or newer.
 - A Refract account. Refract opens its API to a first group of members only: a
   member outside it cannot approve the app.
