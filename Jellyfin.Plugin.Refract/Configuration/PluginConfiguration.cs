@@ -22,6 +22,13 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool ShowLinkButton { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets a value indicating whether the watchlist of each linked member
+    /// is kept in sync with Refract. Needs the KefinTweaks watchlist, which owns the
+    /// Jellyfin Likes field.
+    /// </summary>
+    public bool SyncWatchlist { get; set; }
+
+    /// <summary>
     /// Gets the credential of a Jellyfin user.
     /// </summary>
     /// <param name="userId">The Jellyfin user id.</param>

@@ -186,8 +186,127 @@ public sealed class RefractClient : IDisposable
         await SendAsync(userId, HttpMethod.Post, "history/movies", body, idempotencyKey, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// A title on the member's Refract watchlist.
+    /// </summary>
+    /// <param name="RefractId">Refract's id for the work.</param>
+    /// <param name="TmdbId">The TMDB id, or null when Refract holds none.</param>
+    /// <param name="TvdbId">The TheTVDB id, or null when Refract holds none.</param>
+    /// <param name="IsShow">True for a show, false for a movie.</param>
+    public sealed record WatchlistTitle(string RefractId, string TmdbId, string TvdbId, bool IsShow);
+
+    /// <summary>
+    /// Reads the whole watchlist of a member, following the pages.
+    /// </summary>
+    /// <param name="userId">The Jellyfin user, whose Refract tokens are used.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The titles Refract lists as planned.</returns>
+    public async Task<IReadOnlyList<WatchlistTitle>> GetWatchlistAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var titles = new List<WatchlistTitle>();
+        string cursor = null;
+
+        // 50 pages of 200 is 10 000 titles; past that the answer is a loop, not a watchlist.
+        const int MaxPages = 50;
+        var pages = 0;
+        do
+        {
+            var path = cursor == null
+                ? "watchlist?limit=200"
+                : $"watchlist?limit=200&cursor={Uri.EscapeDataString(cursor)}";
+            var body = await GetAsync(userId, path, cancellationToken).ConfigureAwait(false);
+
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+            {
+                // Fail loudly: an empty list would read as "the member removed everything".
+                throw new HttpRequestException("Refract answered watchlist without a data array");
+            }
+
+            foreach (var item in data.EnumerateArray())
+            {
+                var ids = item.GetProperty("ids");
+                var refractId = ids.TryGetProperty("refract", out var id) ? id.GetString() : null;
+                if (string.IsNullOrEmpty(refractId))
+                {
+                    continue;
+                }
+
+                titles.Add(new WatchlistTitle(
+                    refractId,
+                    IdText(ids, "tmdb"),
+                    IdText(ids, "tvdb"),
+                    item.TryGetProperty("type", out var type) && type.GetString() == "show"));
+            }
+
+            cursor = root.TryGetProperty("has_more", out var more) && more.ValueKind == JsonValueKind.True
+                && root.TryGetProperty("next_cursor", out var next) && next.ValueKind == JsonValueKind.String
+                ? next.GetString()
+                : null;
+        }
+        while (!string.IsNullOrEmpty(cursor) && ++pages < MaxPages);
+
+        return titles;
+    }
+
+    /// <summary>
+    /// Puts a title on the watchlist.
+    /// </summary>
+    /// <param name="userId">The Jellyfin user, whose Refract tokens are used.</param>
+    /// <param name="refractId">Refract's id for the work.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>False when Refract already tracks the title with another status.</returns>
+    public async Task<bool> AddToWatchlistAsync(Guid userId, string refractId, CancellationToken cancellationToken)
+    {
+        return await WatchlistWriteAsync(userId, HttpMethod.Put, refractId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Takes a title off the watchlist.
+    /// </summary>
+    /// <param name="userId">The Jellyfin user, whose Refract tokens are used.</param>
+    /// <param name="refractId">Refract's id for the work.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task.</returns>
+    public async Task RemoveFromWatchlistAsync(Guid userId, string refractId, CancellationToken cancellationToken)
+    {
+        await WatchlistWriteAsync(userId, HttpMethod.Delete, refractId, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <inheritdoc />
     public void Dispose() => _http.Dispose();
+
+    private static string IdText(JsonElement ids, string name)
+    {
+        if (!ids.TryGetProperty(name, out var value))
+        {
+            return null;
+        }
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number => value.GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture),
+            JsonValueKind.String => value.GetString(),
+            _ => null
+        };
+    }
+
+    // Refract answers 409 IN_LIBRARY when the title sits in the library with another
+    // status. That is not an error: the plugin keeps the title as Refract has it.
+    private async Task<bool> WatchlistWriteAsync(Guid userId, HttpMethod method, string refractId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SendAsync(userId, method, $"watchlist/{Uri.EscapeDataString(refractId)}", null, null, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("IN_LIBRARY", StringComparison.Ordinal))
+        {
+            _logger.LogDebug("Refract: {Id} is tracked with another status", refractId);
+            return false;
+        }
+    }
 
     private static string ReadId(string body, string idsProperty)
     {

@@ -16,5 +16,6 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<RefractAuthenticator>();
         serviceCollection.AddSingleton<RefractClient>();
         serviceCollection.AddHostedService<RefractMediator>();
+        serviceCollection.AddSingleton<MediaBrowser.Model.Tasks.IScheduledTask, WatchlistSyncTask>();
     }
 }

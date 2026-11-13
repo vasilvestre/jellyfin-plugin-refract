@@ -88,6 +88,12 @@ public sealed class RefractMediator : IHostedService, IDisposable
 
     private void OnUserDataSaved(object sender, UserDataSaveEventArgs args)
     {
+        // The watchlist sync writes Likes; that is not a play.
+        if (args.SaveReason == UserDataSaveReason.Import)
+        {
+            return;
+        }
+
         if (args.Item is not Movie && args.Item is not Episode)
         {
             return;

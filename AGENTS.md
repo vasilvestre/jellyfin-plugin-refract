@@ -14,10 +14,13 @@ back to another numbering order.
 |---|---|
 | `Plugin.cs` | Plugin identity, GUID `c9f4a1d2-7b3e-4f6a-9d21-3e5c8b0a7f14`, admin page declaration |
 | `RefractMediator.cs` | Subscribes to `IUserDataManager.UserDataSaved`, matches a title, sends the play |
-| `Api/RefractClient.cs` | HTTP to `https://getrefract.app/v1`, search, episode and movie writes |
+| `Api/RefractClient.cs` | HTTP to `https://getrefract.app/v1`, search, episode and movie writes, watchlist reads and writes |
+| `WatchlistSyncTask.cs` | Scheduled task: keeps the Jellyfin Likes watchlist and the Refract watchlist identical |
+| `KefinTweaksWatchlist.cs` | Reads the JavaScript Injector settings to know whether the KefinTweaks watchlist is on |
+| `Model/WatchlistEntry.cs` | The pair stored per synced title, and the keep/remove decision |
 | `Api/RefractAuthenticator.cs` | Device code grant, token cache, refresh token rotation |
 | `Api/RefractController.cs` | Routes the plugin pages call: `Authorize`, `PollAuthorizationStatus`, `Deauthorize`, `Me`, `Widget`, `Qr`, `Link` |
-| `Configuration/PluginConfiguration.cs` | `RefractUsers[]` plus `ShowLinkButton` |
+| `Configuration/PluginConfiguration.cs` | `RefractUsers[]` plus `ShowLinkButton` and `SyncWatchlist` |
 | `Web/` | The admin page (`refract.html/js`), the injected widget (`widget.js`), the QR encoder (`qrcode.js`) |
 | `MenuInjection.cs` | Injects the widget into the web client through File Transformation, if installed |
 
