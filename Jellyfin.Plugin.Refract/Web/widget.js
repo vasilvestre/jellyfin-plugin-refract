@@ -10,6 +10,7 @@
     var captured = null;
     var isLinked = null;
     var missingCache = null;
+    var missingRendering = false;
 
     // The token stored in localStorage can be an old session the server already
     // forgot. The web client sends the live one on every request, so we copy it
@@ -541,7 +542,7 @@
     }
 
     async function mountMissing() {
-        if (!token) {
+        if (!token || missingRendering) {
             return;
         }
 
@@ -550,20 +551,24 @@
             return;
         }
 
-        if (missingCache === null) {
-            try {
+        // One in-flight render only. The fetch below can outlast the 3 s tick,
+        // so without this guard two ticks would both render the section.
+        missingRendering = true;
+        try {
+            if (missingCache === null) {
                 missingCache = (await call('/Refract/WatchlistMissing')).items || [];
-            } catch (e) {
-                // Jellyfin may still be starting; retry on the next tick.
+            }
+
+            if (!missingCache.length) {
                 return;
             }
-        }
 
-        if (!missingCache.length) {
-            return;
+            renderMissing(tab, missingCache);
+        } catch (e) {
+            // Jellyfin may still be starting; retry on the next tick.
+        } finally {
+            missingRendering = false;
         }
-
-        renderMissing(tab, missingCache);
     }
 
     if (document.body) {
