@@ -10,7 +10,7 @@
     "versions": [
       {
         "version": "1.0.3.0",
-        "changelog": "Each Jellyfin user links their own Refract account from the user menu. Only an administrator can link for someone else.",
+        "changelog": "An administrator links each account from the plugin page; the member approves the code in their own Refract app. Writes are serialised per show, which fixes lost episodes on a bulk season toggle.",
         "targetAbi": "12.1.0.0",
         "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.0.3.0/jellyfin-plugin-refract_1.0.3.0.zip",
         "checksum": "17052436415a9aded18e9ec6340ce416",

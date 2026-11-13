@@ -29,7 +29,8 @@ By hand:
 2. Unzip it into `plugins/Refract_<version>/` in the Jellyfin data directory.
 3. Restart Jellyfin.
 
-Then link the accounts, once per user:
+Then link the accounts, once per user. Jellyfin 12 shows plugin pages to administrators only,
+so the link is done from the admin account even when the member owns the Refract account:
 
 1. Open **Dashboard**, **Plugins**, **Refract**.
 2. Pick a Jellyfin user and click **Sign in to Refract**.
