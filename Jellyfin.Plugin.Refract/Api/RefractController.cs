@@ -11,6 +11,7 @@ using Jellyfin.Plugin.Refract.Model;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Net.Codecrete.QrCodeGenerator;
 
 namespace Jellyfin.Plugin.Refract.Api;
 
@@ -57,34 +58,14 @@ public class RefractController : ControllerBase
     [HttpGet("Link")]
     public ActionResult Link()
     {
-        var resource = typeof(Plugin).Namespace + ".Web.link.html";
-        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(resource);
-        if (stream is null)
+        var html = ReadEmbedded("link.html");
+        if (html is null)
         {
             return NotFound();
         }
 
-        using var reader = new StreamReader(stream);
-        return Content(reader.ReadToEnd(), MediaTypeNames.Text.Html);
-    }
-
-    /// <summary>
-    /// Serves the QR encoder the widget loads when it shows a device code.
-    /// </summary>
-    /// <returns>The script.</returns>
-    [AllowAnonymous]
-    [HttpGet("Qr")]
-    public ActionResult Qr()
-    {
-        var resource = typeof(Plugin).Namespace + ".Web.qrcode.js";
-        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(resource);
-        if (stream is null)
-        {
-            return NotFound();
-        }
-
-        using var reader = new StreamReader(stream);
-        return Content(reader.ReadToEnd(), "application/javascript");
+        var version = typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "0";
+        return Content(html.Replace("__VERSION__", version), MediaTypeNames.Text.Html);
     }
 
     /// <summary>
@@ -94,17 +75,38 @@ public class RefractController : ControllerBase
     /// <returns>The script.</returns>
     [AllowAnonymous]
     [HttpGet("Widget")]
-    public ActionResult Widget()
+    public ActionResult Widget() => Resource("widget.js", "application/javascript");
+
+    /// <summary>
+    /// Serves the shared device-code sign-in flow that the widget and the link
+    /// page both load.
+    /// </summary>
+    /// <returns>The script.</returns>
+    [AllowAnonymous]
+    [HttpGet("Flow")]
+    public ActionResult Flow() => Resource("flow.js", "application/javascript");
+
+    private ActionResult Resource(string name, string contentType)
     {
-        var resource = typeof(Plugin).Namespace + ".Web.widget.js";
-        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(resource);
-        if (stream is null)
+        var contents = ReadEmbedded(name);
+        if (contents is null)
         {
             return NotFound();
         }
 
+        return Content(contents, contentType);
+    }
+
+    private string ReadEmbedded(string name)
+    {
+        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(typeof(Plugin).Namespace + ".Web." + name);
+        if (stream is null)
+        {
+            return null;
+        }
+
         using var reader = new StreamReader(stream);
-        return Content(reader.ReadToEnd(), "application/javascript");
+        return reader.ReadToEnd();
     }
 
     /// <summary>
@@ -158,7 +160,9 @@ public class RefractController : ControllerBase
         var (userCode, verificationUri, interval, expiresIn) =
             await _authenticator.StartAsync(userGuid, cancellationToken).ConfigureAwait(false);
 
-        return Ok(new { userCode, verificationUri, interval, expiresIn });
+        var qrPng = Convert.ToBase64String(
+            QrCode.EncodeText(verificationUri, QrCode.Ecc.Medium).ToPngBitmap(4, 8));
+        return Ok(new { userCode, verificationUri, interval, expiresIn, qrPng });
     }
 
     /// <summary>

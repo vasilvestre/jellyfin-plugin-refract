@@ -189,7 +189,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
             return;
         }
 
-        var movieId = await _client.FindMovieIdAsync(userId, ProviderCandidates(movie), CancellationToken.None).ConfigureAwait(false);
+        var movieId = await _client.FindIdAsync(userId, ProviderCandidates(movie), "movie", CancellationToken.None).ConfigureAwait(false);
         if (movieId == null)
         {
             _logger.LogDebug("Refract: no id match for movie {Name}", movie.Name);
@@ -233,7 +233,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
         }
     }
 
-    private static List<(string IdType, string Value)> ProviderCandidates(BaseItem item)
+    internal static List<(string IdType, string Value)> ProviderCandidates(BaseItem item)
     {
         var candidates = new List<(string, string)>(3);
         var tmdb = item.GetProviderId(MetadataProvider.Tmdb);

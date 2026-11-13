@@ -22,7 +22,9 @@
     <EmbeddedResource Include="Web/refract.js" />
     <EmbeddedResource Include="Web/link.html" />
     <EmbeddedResource Include="Web/widget.js" />
-    <EmbeddedResource Include="Web/qrcode.js" />
+    <EmbeddedResource Include="Web/flow.js" />
+    <!-- The MIT notice must travel with the single-DLL release: the QR sources are MIT, this repo is GPL-3.0. -->
+    <EmbeddedResource Include="QrCodeGenerator/LICENSE.txt" />
   </ItemGroup>
 
   <ItemGroup>

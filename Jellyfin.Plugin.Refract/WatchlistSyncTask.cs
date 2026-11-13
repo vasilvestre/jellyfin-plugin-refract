@@ -374,19 +374,9 @@ public sealed class WatchlistSyncTask : IScheduledTask
 
     private async Task<string> FindRefractIdAsync(Guid userId, BaseItem item, CancellationToken cancellationToken)
     {
-        var candidates = new List<(string IdType, string Value)>(3);
-        foreach (var (idType, provider) in new[] { ("tmdb", MetadataProvider.Tmdb), ("tvdb", MetadataProvider.Tvdb), ("imdb", MetadataProvider.Imdb) })
-        {
-            var value = item.GetProviderId(provider);
-            if (!string.IsNullOrEmpty(value))
-            {
-                candidates.Add((idType, value));
-            }
-        }
-
-        return item is Series
-            ? await _client.FindShowIdAsync(userId, candidates, cancellationToken).ConfigureAwait(false)
-            : await _client.FindMovieIdAsync(userId, candidates, cancellationToken).ConfigureAwait(false);
+        return await _client
+            .FindIdAsync(userId, RefractMediator.ProviderCandidates(item), item is Series ? "show" : "movie", cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private void SaveLike(User user, Guid itemId, bool liked)

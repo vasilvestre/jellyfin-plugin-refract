@@ -51,37 +51,17 @@ public sealed class RefractClient : IDisposable
     public static bool IsLinked(Guid userId) => Plugin.Instance?.Configuration.GetUser(userId)?.IsLinked == true;
 
     /// <summary>
-    /// Finds the Refract id of a show, trying each known provider id in order.
+    /// Finds the Refract id of a show or movie, trying each known provider id in order.
     /// </summary>
     /// <param name="ids">Provider id candidates, most reliable first.</param>
+    /// <param name="type">The Refract search type: show or movie.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The Refract id, or null when Refract knows no such show.</returns>
-    public async Task<string> FindShowIdAsync(Guid userId, IEnumerable<(string IdType, string Value)> ids, CancellationToken cancellationToken)
+    /// <returns>The Refract id, or null when Refract knows no such title.</returns>
+    public async Task<string> FindIdAsync(Guid userId, IEnumerable<(string IdType, string Value)> ids, string type, CancellationToken cancellationToken)
     {
         foreach (var (idType, value) in ids)
         {
-            var body = await GetAsync(userId, $"search/{idType}/{Uri.EscapeDataString(value)}?type=show", cancellationToken).ConfigureAwait(false);
-            var found = ReadId(body, "ids");
-            if (found != null)
-            {
-                return found;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Finds the Refract id of a movie, trying each known provider id in order.
-    /// </summary>
-    /// <param name="ids">Provider id candidates, most reliable first.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The Refract id, or null when Refract knows no such movie.</returns>
-    public async Task<string> FindMovieIdAsync(Guid userId, IEnumerable<(string IdType, string Value)> ids, CancellationToken cancellationToken)
-    {
-        foreach (var (idType, value) in ids)
-        {
-            var body = await GetAsync(userId, $"search/{idType}/{Uri.EscapeDataString(value)}?type=movie", cancellationToken).ConfigureAwait(false);
+            var body = await GetAsync(userId, $"search/{idType}/{Uri.EscapeDataString(value)}?type={type}", cancellationToken).ConfigureAwait(false);
             var found = ReadId(body, "ids");
             if (found != null)
             {

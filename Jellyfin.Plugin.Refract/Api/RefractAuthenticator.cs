@@ -84,7 +84,6 @@ public sealed class RefractAuthenticator : IDisposable
         {
             LinkedMbUserId = userId,
             DeviceCode = deviceCode,
-            PollInterval = interval,
             DeviceCodeExpiresAt = DateTime.UtcNow.AddSeconds(expiresIn)
         });
         Plugin.Instance.UpdateConfiguration(config);
@@ -142,8 +141,6 @@ public sealed class RefractAuthenticator : IDisposable
             case "authorization_pending":
                 return "pending";
             case "slow_down":
-                user.PollInterval += 5;
-                Plugin.Instance.UpdateConfiguration(config);
                 return "slow_down";
             case "access_denied":
                 config.RemoveUser(userId);
@@ -250,7 +247,6 @@ public sealed class RefractAuthenticator : IDisposable
         using var document = JsonDocument.Parse(body);
         var root = document.RootElement;
         user.AccessToken = root.GetProperty("access_token").GetString();
-        user.Scope = root.TryGetProperty("scope", out var scope) ? scope.GetString() : null;
         user.ExpiresAt = DateTime.UtcNow.AddSeconds(root.TryGetProperty("expires_in", out var expires) ? expires.GetInt32() : 3600);
 
         // Refract retires the old refresh token on every refresh: store the new one before anything else.
