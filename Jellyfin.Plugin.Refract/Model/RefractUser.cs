@@ -28,19 +28,9 @@ public class RefractUser
     public DateTime ExpiresAt { get; set; }
 
     /// <summary>
-    /// Gets or sets the granted scopes, as Refract echoed them.
-    /// </summary>
-    public string Scope { get; set; } = string.Empty;
-
-    /// <summary>
     /// Gets or sets the device code waiting for approval, if any.
     /// </summary>
     public string DeviceCode { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the polling interval the server asked for, in seconds.
-    /// </summary>
-    public int PollInterval { get; set; } = 5;
 
     /// <summary>
     /// Gets or sets when the pending device code expires, UTC.
