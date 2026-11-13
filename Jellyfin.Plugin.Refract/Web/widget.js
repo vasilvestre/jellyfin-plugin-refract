@@ -8,6 +8,7 @@
     var userId = null;
     var timer = null;
     var captured = null;
+    var isLinked = null;
 
     // The token stored in localStorage can be an old session the server already
     // forgot. The web client sends the live one on every request, so we copy it
@@ -102,6 +103,22 @@
         }
 
         return false;
+    }
+
+    // The button only helps a member who has not linked yet, so the state is read
+    // once at startup and again after each link or unlink.
+    async function refreshLinked() {
+        if (!(await adoptSession())) {
+            return;
+        }
+
+        try {
+            isLinked = !!(await call('/Refract/Me')).linked;
+        } catch (e) {
+            isLinked = false;
+        }
+
+        mount();
     }
 
     function stop() {
@@ -317,7 +334,9 @@
                 var status = (await call('/Refract/Users/' + userId + '/PollAuthorizationStatus')).status;
                 if (status === 'authorized') {
                     stop();
+                    isLinked = true;
                     linked(document.getElementById('refract-body'));
+                    mount();
                     return;
                 }
 
@@ -358,8 +377,10 @@
         button(target, t('unlink'), async function () {
             try {
                 await call('/Refract/Users/' + userId + '/Deauthorize', { method: 'POST' });
+                isLinked = false;
                 target.innerHTML = '';
                 note(target, t('unlinked'));
+                mount();
             } catch (error) {
                 note(target, error.message, '#ff9f7a');
             }
@@ -382,13 +403,18 @@
     // React re-renders the page on navigation, which removes our node, so the
     // button is put back when it disappears.
     // The button belongs on the browsing pages. Over the player it covers the
-    // controls, and on the login page there is no account to link yet.
+    // controls, on the login page there is no account to link yet, the plugin page
+    // has its own link controls, and a member who already linked needs no button.
     function placeable() {
         if (!storedTokens().length) {
             return false;
         }
 
-        if (/video|login/i.test(location.hash || '')) {
+        if (/video|login|configurationpage/i.test(location.hash || '')) {
+            return false;
+        }
+
+        if (isLinked !== false) {
             return false;
         }
 
@@ -428,8 +454,12 @@
 
     if (document.body) {
         mount();
+        refreshLinked();
     } else {
-        document.addEventListener('DOMContentLoaded', mount);
+        document.addEventListener('DOMContentLoaded', function () {
+            mount();
+            refreshLinked();
+        });
     }
 
     window.addEventListener('hashchange', mount);
