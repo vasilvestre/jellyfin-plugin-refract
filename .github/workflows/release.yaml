@@ -48,6 +48,14 @@ jobs:
           gh release create "$GITHUB_REF_NAME" "jellyfin-plugin-refract_${VERSION}.zip" \
             --title "$GITHUB_REF_NAME" --notes-file notes.txt
 
+      # The tag checkout is detached and main may have moved since, so edit and push
+      # from the real main branch instead of failing on a non-fast-forward.
+      - name: Switch to the main branch
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+
       # The catalogue trust rests on checksum and sourceUrl, the pair the hand-made flow got wrong once.
       - name: Update manifest.json and build.yaml
         run: |
