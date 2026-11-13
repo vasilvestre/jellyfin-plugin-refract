@@ -327,8 +327,34 @@
 
     // React re-renders the page on navigation, which removes our node, so the
     // button is put back when it disappears.
+    // The button belongs on the browsing pages. Over the player it covers the
+    // controls, and on the login page there is no account to link yet.
+    function placeable() {
+        if (!storedTokens().length) {
+            return false;
+        }
+
+        if (/video|login/i.test(location.hash || '')) {
+            return false;
+        }
+
+        // A hidden player node can stay in the DOM after the player closes, so
+        // only a laid-out one counts.
+        var osd = document.querySelector('.videoPlayerContainer, .videoOsd');
+        return !osd || osd.getClientRects().length === 0;
+    }
+
     function mount() {
-        if (!document.body || document.getElementById('refract-link-anchor')) {
+        var existing = document.getElementById('refract-link-anchor');
+        if (!document.body || !placeable()) {
+            if (existing) {
+                existing.remove();
+            }
+
+            return;
+        }
+
+        if (existing) {
             return;
         }
 
@@ -352,5 +378,6 @@
         document.addEventListener('DOMContentLoaded', mount);
     }
 
+    window.addEventListener('hashchange', mount);
     setInterval(mount, 3000);
 }());
