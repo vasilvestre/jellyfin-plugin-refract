@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
     "versions": [
       {
+        "version": "1.1.0.0",
+        "changelog": "Sync each member's watchlist between Jellyfin and Refract",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.1.0.0/jellyfin-plugin-refract_1.1.0.0.zip",
+        "checksum": "1caeec93757677bbf49892308ada109b",
+        "timestamp": "2026-11-13T12:40:46Z"
+      },
+      {
         "version": "1.0.16.0",
         "changelog": "Hide the link button once a user is linked, and on the plugin page",
         "targetAbi": "12.1.0.0",
