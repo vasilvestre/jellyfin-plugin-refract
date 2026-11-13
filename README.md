@@ -19,7 +19,7 @@ No key to create and no secret. Each user signs in once from the plugin settings
 From the catalogue:
 
 1. Open **Dashboard**, **Plugins**, **Repositories**.
-2. Add `https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/master/manifest.json`.
+2. Add `https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/manifest.json`.
 3. Open the **Catalogue**, find **Refract**, install it, and restart Jellyfin.
 
 By hand:

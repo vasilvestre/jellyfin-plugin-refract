@@ -6,7 +6,7 @@
         "overview": "Marks episodes and movies watched in Jellyfin as watched on Refract, with the date Jellyfin stored. Each Jellyfin user signs in once with the device code flow and links their own Refract account. Titles are matched through TMDB, TheTVDB and IMDb ids, and episode numbers are translated to TMDB numbering, so anime with a different aired order still land on the right episode.",
         "owner": "vasilvestre",
         "category": "General",
-        "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/master/img/logo.png",
+        "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
         "versions": [
             {
                 "version": "1.0.1.0",
