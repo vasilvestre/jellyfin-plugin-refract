@@ -1,21 +1,29 @@
 [
-    {
-        "guid": "c9f4a1d2-7b3e-4f6a-9d21-3e5c8b0a7f14",
-        "name": "Refract",
-        "description": "Records what your users watch in Jellyfin on Refract.",
-        "overview": "Marks episodes and movies watched in Jellyfin as watched on Refract, with the date Jellyfin stored. Each Jellyfin user signs in once with the device code flow and links their own Refract account. Titles are matched through TMDB, TheTVDB and IMDb ids, and episode numbers are translated to TMDB numbering, so anime with a different aired order still land on the right episode.",
-        "owner": "vasilvestre",
-        "category": "General",
-        "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
-        "versions": [
-            {
-                "version": "1.0.2.0",
-                "changelog": "Writes to the same show are serialised and a concurrent modification is retried, so ticking a whole season no longer loses episodes. Explicit user agent.",
-                "targetAbi": "12.1.0.0",
-                "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.0.2.0/jellyfin-plugin-refract_1.0.2.0.zip",
-                "checksum": "346a9b73ca65b17d0128a88fc9eadadb",
-                "timestamp": "2026-11-13T09:30:00Z"
-            }
-        ]
-    }
+  {
+    "guid": "c9f4a1d2-7b3e-4f6a-9d21-3e5c8b0a7f14",
+    "name": "Refract",
+    "description": "Records what your users watch in Jellyfin on Refract.",
+    "overview": "Marks episodes and movies watched in Jellyfin as watched on Refract, with the date Jellyfin stored. Each Jellyfin user signs in once with the device code flow and links their own Refract account. Titles are matched through TMDB, TheTVDB and IMDb ids, and episode numbers are translated to TMDB numbering, so anime with a different aired order still land on the right episode.",
+    "owner": "vasilvestre",
+    "category": "General",
+    "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
+    "versions": [
+      {
+        "version": "1.0.3.0",
+        "changelog": "Each Jellyfin user links their own Refract account from the user menu. Only an administrator can link for someone else.",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.0.3.0/jellyfin-plugin-refract_1.0.3.0.zip",
+        "checksum": "17052436415a9aded18e9ec6340ce416",
+        "timestamp": "2026-11-13T09:30:00Z"
+      },
+      {
+        "version": "1.0.2.0",
+        "changelog": "Writes to the same show are serialised and a concurrent modification is retried, so ticking a whole season no longer loses episodes. Explicit user agent.",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.0.2.0/jellyfin-plugin-refract_1.0.2.0.zip",
+        "checksum": "346a9b73ca65b17d0128a88fc9eadadb",
+        "timestamp": "2026-11-13T09:30:00Z"
+      }
+    ]
+  }
 ]

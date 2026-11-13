@@ -46,7 +46,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             new PluginPageInfo
             {
                 Name = "refract",
-                EmbeddedResourcePath = GetType().Namespace + ".Web.refract.html"
+                EmbeddedResourcePath = GetType().Namespace + ".Web.refract.html",
+                // The dashboard entry is admin only. This flag also puts the page in the
+                // user menu, where every user links their own account.
+                EnableInMainMenu = true,
+                MenuIcon = "sync"
             },
             new PluginPageInfo
             {

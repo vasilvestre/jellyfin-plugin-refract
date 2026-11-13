@@ -1,21 +1,5 @@
 const pluginUniqueId = 'c9f4a1d2-7b3e-4f6a-9d21-3e5c8b0a7f14';
 
-function normalize(value) {
-    return (value || '').replace(/-/g, '').toLowerCase();
-}
-
-// Jellyfin serializes the answer in PascalCase. Read either casing so the page never
-// runs on undefined, which once turned the polling delay into NaN.
-function pick(source, name) {
-    if (!source) {
-        return undefined;
-    }
-
-    return source[name] !== undefined
-        ? source[name]
-        : source[name.charAt(0).toUpperCase() + name.slice(1)];
-}
-
 // Jellyfin may hand the page a fresh closure while the previous timer still runs.
 // One timer for the whole module, plus a generation counter so a stale answer
 // never re-arms a poll.
@@ -30,17 +14,36 @@ function stopPolling() {
     }
 }
 
-export default function (view) {
-    function currentUserId() {
-        return view.querySelector('#selectUser').value;
+function normalize(value) {
+    return (value || '').replace(/-/g, '').toLowerCase();
+}
+
+// Jellyfin may serialize the answer in PascalCase. Read either casing so the page
+// never runs on undefined, which once turned the polling delay into NaN.
+function pick(source, name) {
+    if (!source) {
+        return undefined;
     }
+
+    return source[name] !== undefined
+        ? source[name]
+        : source[name.charAt(0).toUpperCase() + name.slice(1)];
+}
+
+export default function (view) {
+    let isAdmin = false;
+    let userId = null;
 
     function showLinked(linked) {
         view.querySelector('#linkedBlock').classList.toggle('hide', !linked);
         view.querySelector('#unlinkedBlock').classList.toggle('hide', linked);
     }
 
-    function loadUsers() {
+    function setStatus(text) {
+        view.querySelector('#pollStatus').textContent = text;
+    }
+
+    function loadAdminUsers() {
         ApiClient.getUsers().then(function (users) {
             const select = view.querySelector('#selectUser');
             select.innerHTML = '';
@@ -50,22 +53,36 @@ export default function (view) {
                 option.textContent = user.Name;
                 select.appendChild(option);
             });
+            userId = select.value;
             refreshStatus();
         });
     }
 
     function refreshStatus() {
-        const userId = normalize(currentUserId());
+        if (!userId) {
+            return;
+        }
+
+        // A non admin cannot read the plugin configuration, so the plugin reports
+        // its own linked state and returns one boolean.
+        if (!isAdmin) {
+            ApiClient.getJSON(ApiClient.getUrl('Refract/Me')).then(function (result) {
+                showLinked(!!pick(result, 'linked'));
+            });
+            return;
+        }
+
         ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
             const linked = (config.RefractUsers || []).some(function (entry) {
-                return normalize(entry.LinkedMbUserId) === userId
+                return normalize(entry.LinkedMbUserId) === normalize(userId)
                     && (entry.RefreshToken || '').length > 0;
             });
             showLinked(linked);
         });
     }
 
-    function poll(userId, seconds) {
+    function poll(seconds) {
+        const target = userId;
         stopPolling();
         const generation = pollGeneration;
         let delay = Number(seconds);
@@ -83,12 +100,12 @@ export default function (view) {
                     return;
                 }
 
-                ApiClient.getJSON(ApiClient.getUrl('Refract/Users/' + userId + '/PollAuthorizationStatus'))
+                ApiClient.getJSON(ApiClient.getUrl('Refract/Users/' + target + '/PollAuthorizationStatus'))
                     .then(function (result) {
                         const status = pick(result, 'status');
                         if (status === 'authorized') {
                             stopPolling();
-                            view.querySelector('#pollStatus').textContent = 'Approved.';
+                            setStatus('Approved.');
                             view.querySelector('#codeBlock').classList.add('hide');
                             refreshStatus();
                             return;
@@ -96,23 +113,23 @@ export default function (view) {
 
                         if (status === 'denied') {
                             stopPolling();
-                            view.querySelector('#pollStatus').textContent = 'Refused in the Refract app.';
+                            setStatus('Refused in the Refract app.');
                             setTimeout(refreshStatus, 1500);
                             return;
                         }
 
                         if (status === 'expired') {
                             stopPolling();
-                            view.querySelector('#pollStatus').textContent = 'The code expired. Start again.';
+                            setStatus('The code expired. Start again.');
                             setTimeout(refreshStatus, 1500);
                             return;
                         }
 
                         if (status === 'slow_down') {
                             delay += 5;
-                            view.querySelector('#pollStatus').textContent = 'Waiting, the server asked for slower polling.';
+                            setStatus('Waiting, the server asked for slower polling.');
                         } else {
-                            view.querySelector('#pollStatus').textContent = 'Waiting for approval.';
+                            setStatus('Waiting for approval.');
                         }
 
                         tick();
@@ -128,17 +145,11 @@ export default function (view) {
         tick();
     }
 
-    view.querySelector('#selectUser').addEventListener('change', function () {
-        stopPolling();
-        view.querySelector('#codeBlock').classList.add('hide');
-        refreshStatus();
-    });
-
-    view.querySelector('#authorize').addEventListener('click', function () {
-        const userId = currentUserId();
+    function startAuthorize() {
+        const target = userId;
         ApiClient.fetch({
             type: 'POST',
-            url: ApiClient.getUrl('Refract/Users/' + userId + '/Authorize'),
+            url: ApiClient.getUrl('Refract/Users/' + target + '/Authorize'),
             dataType: 'json'
         }).then(function (result) {
             const code = pick(result, 'userCode');
@@ -147,17 +158,26 @@ export default function (view) {
             const link = view.querySelector('#verificationLink');
             link.href = uri;
             link.textContent = uri;
-            view.querySelector('#pollStatus').textContent = 'Waiting for approval.';
+            setStatus('Waiting for approval.');
             view.querySelector('#codeBlock').classList.remove('hide');
-            poll(userId, pick(result, 'interval'));
+            poll(pick(result, 'interval'));
         });
+    }
+
+    view.querySelector('#selectUser').addEventListener('change', function () {
+        stopPolling();
+        view.querySelector('#codeBlock').classList.add('hide');
+        userId = view.querySelector('#selectUser').value;
+        refreshStatus();
     });
 
+    view.querySelector('#authorize').addEventListener('click', startAuthorize);
+
     view.querySelector('#deauthorize').addEventListener('click', function () {
-        const userId = currentUserId();
+        const target = userId;
         ApiClient.fetch({
             type: 'POST',
-            url: ApiClient.getUrl('Refract/Users/' + userId + '/Deauthorize'),
+            url: ApiClient.getUrl('Refract/Users/' + target + '/Deauthorize'),
             dataType: 'json'
         }).then(function () {
             stopPolling();
@@ -166,6 +186,19 @@ export default function (view) {
         });
     });
 
-    view.addEventListener('viewshow', loadUsers);
+    view.addEventListener('viewshow', function () {
+        ApiClient.getCurrentUser().then(function (user) {
+            isAdmin = !!(user.Policy && user.Policy.IsAdministrator);
+            const picker = view.querySelector('#selectUser');
+            picker.closest('.selectContainer').classList.toggle('hide', !isAdmin);
+            if (isAdmin) {
+                loadAdminUsers();
+            } else {
+                userId = user.Id;
+                refreshStatus();
+            }
+        });
+    });
+
     view.addEventListener('viewhide', stopPolling);
 }
