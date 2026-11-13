@@ -86,6 +86,36 @@ After a plugin upgrade, reload the page without the cache (Ctrl+Shift+R on Firef
 Chrome). The widget URL carries the plugin version, so the browser picks up the new one.
 
 
+## Watchlist sync
+
+The plugin can keep each member's Refract watchlist and their Jellyfin watchlist
+identical, in both directions, removals included.
+
+Jellyfin has no watchlist of its own. This sync uses the **Likes** field, which is
+what the [KefinTweaks](https://github.com/ranaldsgift/kefintweaks) watchlist button
+writes: it calls `updateUserItemRating`, so the button state and the sync agree.
+
+Jellyfin 12 keeps no separate Likes column. A like is stored as a 10 rating and an
+unlike as a 1 rating, so the sync moves ratings with it. Do not use this feature on
+a server where members rate titles for their own sake. Two conditions must hold:
+
+1. KefinTweaks is installed through the JavaScript Injector plugin, with its
+   `watchlist` feature on. The plugin reads that setting before it writes anything.
+2. An administrator ticks **Sync the watchlist with Refract** on the plugin page.
+
+The scheduled task `Sync the Refract watchlist` then runs every 15 minutes. You can
+run it by hand from Dashboard, Scheduled Tasks.
+
+- The sync covers movies and shows. Refract has no watchlist for seasons or
+  episodes, so those stay in Jellyfin only.
+- A title missing from one side is read as a removal, because the plugin stores the
+  pairs it left on both sides. Without that record a removal and a title the other
+  side never had would look the same.
+- Refract leaves a title alone when it sits in the library with another status
+  (in progress, completed). The plugin records such a title and never removes it.
+- Turn the sync off before a member rates titles they do not plan to watch.
+  Otherwise every title rated 6.5 or more lands on the Refract watchlist.
+
 ## How a title is matched
 
 Jellyfin keeps no TMDB id on episodes, so the plugin resolves them in two steps:

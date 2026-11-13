@@ -19,6 +19,18 @@
                 </div>
             </div>
 
+            <div class="checkboxContainer checkboxContainer-withDescription">
+                <label>
+                    <input is="emby-checkbox" type="checkbox" id="syncWatchlist" />
+                    <span>Sync the watchlist with Refract</span>
+                </label>
+                <div class="fieldDescription checkboxFieldDescription">
+                    Copies the watchlist of each linked member to Refract, and back, every
+                    15 minutes. Needs the KefinTweaks watchlist. A like is stored as a 10
+                    rating in Jellyfin, so the sync moves ratings with it.
+                </div>
+            </div>
+
             <div class="selectContainer">
                 <label class="selectLabel" for="selectUser">Configure Refract for:</label>
                 <select is="emby-select" id="selectUser" name="selectUser"></select>

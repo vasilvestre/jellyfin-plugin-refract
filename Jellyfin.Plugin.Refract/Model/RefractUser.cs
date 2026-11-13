@@ -48,6 +48,13 @@ public class RefractUser
     public DateTime DeviceCodeExpiresAt { get; set; }
 
     /// <summary>
+    /// Gets or sets the watchlist pairs the last sync left on both sides, as
+    /// "mbId|refractId" or "mbId|refractId|tracked". They are what lets the sync
+    /// read a title missing from one side as a removal.
+    /// </summary>
+    public string[] SyncedItems { get; set; } = Array.Empty<string>();
+
+    /// <summary>
     /// Gets a value indicating whether the user holds tokens.
     /// </summary>
     public bool IsLinked => !string.IsNullOrEmpty(RefreshToken);
