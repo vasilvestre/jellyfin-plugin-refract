@@ -34,7 +34,7 @@
         <input id="username" autocomplete="username" required>
         <label for="password">Jellyfin password</label>
         <input id="password" type="password" autocomplete="current-password" required>
-        <button type="submit" id="submit">Continue</button>
+        <button type="submit" id="submit" disabled>Continue</button>
     </form>
 
     <div id="step" class="hide">
@@ -108,6 +108,7 @@
     }
 
     function bootstrap() {
+        document.getElementById('submit').disabled = false;
         document.getElementById('login').addEventListener('submit', async (event) => {
             event.preventDefault();
             const submit = document.getElementById('submit');
@@ -153,6 +154,12 @@
     const flow = document.createElement('script');
     flow.src = base + '/Refract/Flow?v=' + REFRACT_VERSION;
     flow.onload = bootstrap;
+    flow.onerror = () => {
+        const note = document.createElement('p');
+        note.className = 'note warn';
+        note.textContent = 'The sign-in script failed to load. Reload the page.';
+        document.querySelector('main').appendChild(note);
+    };
     document.head.appendChild(flow);
 </script>
 </body>
