@@ -16,13 +16,28 @@ No key to create and no secret. Each user signs in once from the plugin settings
 
 ## Install
 
-1. Build the plugin or download `Jellyfin.Plugin.Refract.dll`.
-2. Create `plugins/Refract_1.0.0.0/` in the Jellyfin data directory.
-3. Copy the DLL into that directory and restart Jellyfin.
-4. Open **Dashboard**, **Plugins**, **Refract**.
-5. Pick a Jellyfin user and click **Sign in to Refract**.
-6. Open the address shown, approve the code, and wait for the page to confirm.
-   Repeat for each user who wants their own Refract account.
+From the catalogue:
+
+1. Open **Dashboard**, **Plugins**, **Repositories**.
+2. Add `https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/master/manifest.json`.
+3. Open the **Catalogue**, find **Refract**, install it, and restart Jellyfin.
+
+By hand:
+
+1. Download `jellyfin-plugin-refract_<version>.zip` from the releases page.
+2. Unzip it into `plugins/Refract_<version>/` in the Jellyfin data directory.
+3. Restart Jellyfin.
+
+Then link the accounts, once per user:
+
+1. Open **Dashboard**, **Plugins**, **Refract**.
+2. Pick a Jellyfin user and click **Sign in to Refract**.
+3. Open the address shown, approve the code, and wait for the page to confirm.
+4. Repeat for each user who wants their own Refract account.
+
+After a plugin upgrade, reload the dashboard page without the cache (Ctrl+Shift+R on
+Firefox and Chrome). Jellyfin puts the plugin version in the script URL, so a stale
+copy of the settings page can outlive the upgrade.
 
 
 ## How a title is matched
@@ -55,7 +70,7 @@ member disconnected the app: the plugin drops the link and stops syncing.
   position does not travel.
 - **No rewatch from Jellyfin.** The plugin marks an episode watched. Refract keeps
   the first watch date.
-- **One Refract account.** All Jellyfin users write to the key's account.
+- **One Refract account per Jellyfin user.** Each link stores its own tokens.
 - **No sync from Refract to Jellyfin yet.** The change feed makes it possible.
 
 ## Build
@@ -67,6 +82,11 @@ docker run --rm -v "$PWD":/src -w /src mcr.microsoft.com/dotnet/sdk:10.0 \
 
 The DLL is `Jellyfin.Plugin.Refract/bin/Release/net10.0/Jellyfin.Plugin.Refract.dll`.
 Ship that file alone: the server already provides the Jellyfin assemblies.
+
+## Credits
+
+The icon in `img/logo.png` is the Refract app icon, used to identify the service the
+plugin talks to. Refract owns it; this project claims no rights over the mark.
 
 ## Licence
 
