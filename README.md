@@ -116,6 +116,22 @@ run it by hand from Dashboard, Scheduled Tasks.
 - Turn the sync off before a member rates titles they do not plan to watch.
   Otherwise every title rated 6.5 or more lands on the Refract watchlist.
 
+## Requesting missing titles through Seerr
+
+A title on a member's Refract watchlist that is not in the library cannot sync
+either way. The watchlist tab shows these titles in a "To download via Seerr"
+section, each with a **Request** button, so the member can ask for them.
+
+The card and the request come from Jellyfin Enhanced's Seerr integration, reused
+directly: this plugin holds no Seerr key. Three things must hold:
+
+1. The member linked their Refract account.
+2. KefinTweaks is installed, so the watchlist tab exists.
+3. Jellyfin Enhanced is installed with Seerr configured, so the poster and the
+   request have somewhere to go.
+
+Without Jellyfin Enhanced the section does not appear.
+
 ## How a title is matched
 
 Jellyfin keeps no TMDB id on episodes, so the plugin resolves them in two steps:

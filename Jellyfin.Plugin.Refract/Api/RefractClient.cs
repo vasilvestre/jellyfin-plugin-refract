@@ -193,7 +193,9 @@ public sealed class RefractClient : IDisposable
     /// <param name="TmdbId">The TMDB id, or null when Refract holds none.</param>
     /// <param name="TvdbId">The TheTVDB id, or null when Refract holds none.</param>
     /// <param name="IsShow">True for a show, false for a movie.</param>
-    public sealed record WatchlistTitle(string RefractId, string TmdbId, string TvdbId, bool IsShow);
+    /// <param name="Title">The display title, or null when Refract holds none.</param>
+    /// <param name="Year">The release year, or null when Refract holds none.</param>
+    public sealed record WatchlistTitle(string RefractId, string TmdbId, string TvdbId, bool IsShow, string Title, int? Year);
 
     /// <summary>
     /// Reads the whole watchlist of a member, following the pages.
@@ -237,7 +239,9 @@ public sealed class RefractClient : IDisposable
                     refractId,
                     IdText(ids, "tmdb"),
                     IdText(ids, "tvdb"),
-                    item.TryGetProperty("type", out var type) && type.GetString() == "show"));
+                    item.TryGetProperty("type", out var type) && type.GetString() == "show",
+                    item.TryGetProperty("title", out var title) ? title.GetString() : null,
+                    item.TryGetProperty("year", out var year) && year.ValueKind == JsonValueKind.Number ? year.GetInt32() : null));
             }
 
             cursor = root.TryGetProperty("has_more", out var more) && more.ValueKind == JsonValueKind.True
