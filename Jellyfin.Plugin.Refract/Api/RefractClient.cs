@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
@@ -19,8 +20,14 @@ public sealed class RefractClient : IDisposable
     private readonly HttpClient _http = new()
     {
         BaseAddress = new Uri("https://getrefract.app/v1/"),
-        Timeout = TimeSpan.FromSeconds(20)
+        Timeout = TimeSpan.FromSeconds(20),
+        // The edge in front of Refract rejects some default user agents outright.
+        DefaultRequestHeaders = { UserAgent = { new ProductInfoHeaderValue("Jellyfin.Plugin.Refract", "1.0.2.0") } }
     };
+
+    // Refract refuses two writes on the same show at once (409, concurrent_modification).
+    // Ticking a whole season fires one save per episode in parallel, so the writes queue here.
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _showLocks = new();
 
     private readonly ILogger<RefractClient> _logger;
     private readonly RefractAuthenticator _authenticator;
@@ -144,16 +151,25 @@ public sealed class RefractClient : IDisposable
         CancellationToken cancellationToken)
     {
         var path = $"history/episodes/{Uri.EscapeDataString(showId)}/{season}/{number}";
-        if (!played)
+        var gate = _showLocks.GetOrAdd(showId, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            await SendAsync(userId, HttpMethod.Delete, path, null, null, cancellationToken).ConfigureAwait(false);
-            return;
-        }
+            if (!played)
+            {
+                await SendAsync(userId, HttpMethod.Delete, path, null, null, cancellationToken).ConfigureAwait(false);
+                return;
+            }
 
-        var body = watchedAt.HasValue
-            ? $"{{\"watched_at\":\"{watchedAt.Value.ToUniversalTime():yyyy-MM-dd'T'HH:mm:ss'Z'}\"}}"
-            : null;
-        await SendAsync(userId, HttpMethod.Put, path, body, null, cancellationToken).ConfigureAwait(false);
+            var body = watchedAt.HasValue
+                ? $"{{\"watched_at\":\"{watchedAt.Value.ToUniversalTime():yyyy-MM-dd'T'HH:mm:ss'Z'}\"}}"
+                : null;
+            await SendAsync(userId, HttpMethod.Put, path, body, null, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            gate.Release();
+        }
     }
 
     /// <summary>
@@ -200,6 +216,7 @@ public sealed class RefractClient : IDisposable
     {
         var refreshed = false;
         var retriedRateLimit = false;
+        var retriedConflict = false;
 
         while (true)
         {
@@ -235,6 +252,14 @@ public sealed class RefractClient : IDisposable
             {
                 refreshed = true;
                 await _authenticator.RefreshAsync(userId, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            // Another client, a phone for example, was writing the same title. Retry once.
+            if (!retriedConflict && status == 409 && responseBody.Contains("concurrent_modification", StringComparison.Ordinal))
+            {
+                retriedConflict = true;
+                await Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
