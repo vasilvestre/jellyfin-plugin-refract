@@ -45,8 +45,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "jellyfin-plugin-refract_${VERSION}.zip" \
-            --title "$GITHUB_REF_NAME" --notes-file notes.txt
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "jellyfin-plugin-refract_${VERSION}.zip" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "jellyfin-plugin-refract_${VERSION}.zip" \
+              --title "$GITHUB_REF_NAME" --notes-file notes.txt
+          fi
 
       # The tag checkout is detached and main may have moved since, so edit and push
       # from the real main branch instead of failing on a non-fast-forward.
@@ -85,7 +89,8 @@ jobs:
       - name: Commit the manifest and build.yaml
         run: |
           set -euo pipefail
-          git pull --rebase origin main
           git add manifest.json build.yaml
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Release $VERSION"
+          # main can move while this job runs, so rebase the release commit instead of failing.
+          git pull --rebase origin main
           git push origin HEAD:main
