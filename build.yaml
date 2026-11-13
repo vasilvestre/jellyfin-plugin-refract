@@ -1,7 +1,7 @@
 ---
 name: "Refract"
 guid: "c9f4a1d2-7b3e-4f6a-9d21-3e5c8b0a7f14"
-version: 0
+version: 1
 targetAbi: "12.1.0.0"
 framework: "net10.0"
 owner: "vasilvestre"

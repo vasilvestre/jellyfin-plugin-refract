@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
     "versions": [
       {
+        "version": "1.2.1.0",
+        "changelog": "Render the missing-titles section once",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.2.1.0/jellyfin-plugin-refract_1.2.1.0.zip",
+        "checksum": "b0b5b82ac26f06aa348c1d9826d0266e",
+        "timestamp": "2026-11-13T14:50:39Z"
+      },
+      {
         "version": "1.2.0.0",
         "changelog": "Let members request missing Refract titles through Seerr",
         "targetAbi": "12.1.0.0",
