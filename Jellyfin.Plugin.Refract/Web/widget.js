@@ -9,6 +9,7 @@
     var timer = null;
     var captured = null;
     var isLinked = null;
+    var missingCache = null;
 
     // The token stored in localStorage can be an old session the server already
     // forgot. The web client sends the live one on every request, so we copy it
@@ -151,7 +152,8 @@
             user: 'Jellyfin username',
             pass: 'Jellyfin password',
             cont: 'Continue',
-            refused: 'Jellyfin refused those credentials.'
+            refused: 'Jellyfin refused those credentials.',
+            missing: 'To download via Seerr'
         },
         fr: {
             link: 'Lier Refract',
@@ -173,7 +175,8 @@
             user: 'Nom d\'utilisateur Jellyfin',
             pass: 'Mot de passe Jellyfin',
             cont: 'Continuer',
-            refused: 'Jellyfin a refusé ces identifiants.'
+            refused: 'Jellyfin a refusé ces identifiants.',
+            missing: 'À télécharger via Seerr'
         }
     };
     var lang = (document.documentElement.lang || navigator.language || 'en').slice(0, 2).toLowerCase();
@@ -452,16 +455,131 @@
         document.body.appendChild(link);
     }
 
+    // KefinTweaks shows the watchlist as a section on a library page or a custom tab.
+    // The plugin adds a "to download via Seerr" list there for the Refract watchlist
+    // titles that have no local item. Seerr work is reused from Jellyfin Enhanced, so
+    // this plugin never holds the Seerr key.
+    function watchlistSection() {
+        return document.querySelector('.libraryPage:not(.hide) .sections.watchlist, div[id^="customTab_"] .sections.watchlist');
+    }
+
+    function watchlistTab() {
+        var section = watchlistSection();
+        return section ? section.querySelector('div[data-tab="watchlist"]') : null;
+    }
+
+    // Jellyfin Enhanced already builds the Seerr result card (poster, media badge,
+    // hover synopsis, request button) and exposes it as a reusable builder. The
+    // plugin only lists the Refract titles that are not in the library and hands
+    // each one to that builder, so the cards look and behave exactly like JE's own
+    // search results and this plugin never holds the Seerr key.
+    function missingItem(detail, source, tmdbId, mediaType) {
+        return {
+            id: Number(tmdbId),
+            mediaType: mediaType,
+            title: detail.title || detail.name || source.title || '',
+            name: detail.name || detail.title || source.title || '',
+            posterPath: detail.posterPath || detail.poster_path || null,
+            voteAverage: detail.voteAverage != null ? detail.voteAverage : (detail.vote_average != null ? detail.vote_average : null),
+            releaseDate: detail.releaseDate || detail.release_date || null,
+            firstAirDate: detail.firstAirDate || detail.first_air_date || null,
+            overview: detail.overview || ''
+        };
+    }
+
+    function renderMissing(tab, items) {
+        var build = window.JellyfinEnhanced
+            && window.JellyfinEnhanced.jellyseerrUI
+            && window.JellyfinEnhanced.jellyseerrUI.createJellyseerrCard;
+        if (!build) {
+            return;
+        }
+
+        // Same section wrapper, title and scroller KefinTweaks uses for its own
+        // watchlist sections, so this list reads as a native section.
+        var section = document.createElement('div');
+        section.id = 'refract-missing';
+        section.className = 'verticalSection emby-scroller-container custom-scroller-container';
+        section.setAttribute('data-section-id', 'refract-missing');
+        section.setAttribute('data-layout', 'row');
+
+        var titleWrap = document.createElement('div');
+        titleWrap.className = 'sectionTitleContainer sectionTitleContainer-cards padded-left';
+        var title = document.createElement('h2');
+        title.className = 'sectionTitle sectionTitle-cards';
+        title.textContent = t('missing');
+        titleWrap.appendChild(title);
+        section.appendChild(titleWrap);
+
+        var scroller = document.createElement('div');
+        scroller.setAttribute('data-horizontal', 'true');
+        scroller.setAttribute('data-centerfocus', 'true');
+        scroller.className = 'padded-top-focusscale padded-bottom-focusscale emby-scroller padded-left custom-scroller';
+        scroller.setAttribute('data-scroll-mode-x', 'custom');
+
+        // Jellyfin's webcomponents shim breaks when given the options argument.
+        var row = document.createElement('div');
+        row.className = 'focuscontainer-x itemsContainer scrollSlider animatedScrollX';
+        row.setAttribute('data-layout', 'row');
+
+        scroller.appendChild(row);
+        section.appendChild(scroller);
+
+        items.forEach(function (source) {
+            // The poster, synopsis and rating come from Seerr through Jellyfin
+            // Enhanced, because Refract does not hold them. The card still renders
+            // (without a poster) when that call fails.
+            var mediaType = source.mediaType === 'tv' ? 'tv' : 'movie';
+            call('/JellyfinEnhanced/jellyseerr/' + mediaType + '/' + source.tmdbId).then(function (detail) {
+                row.appendChild(build(missingItem(detail, source, source.tmdbId, mediaType), true, true));
+            }).catch(function () {
+                row.appendChild(build(missingItem({}, source, source.tmdbId, mediaType), true, true));
+            });
+        });
+
+        tab.appendChild(section);
+    }
+
+    async function mountMissing() {
+        if (!token) {
+            return;
+        }
+
+        var tab = watchlistTab();
+        if (!tab || document.getElementById('refract-missing')) {
+            return;
+        }
+
+        if (missingCache === null) {
+            try {
+                missingCache = (await call('/Refract/WatchlistMissing')).items || [];
+            } catch (e) {
+                // Jellyfin may still be starting; retry on the next tick.
+                return;
+            }
+        }
+
+        if (!missingCache.length) {
+            return;
+        }
+
+        renderMissing(tab, missingCache);
+    }
+
     if (document.body) {
         mount();
         refreshLinked();
+        mountMissing();
     } else {
         document.addEventListener('DOMContentLoaded', function () {
             mount();
             refreshLinked();
+            mountMissing();
         });
     }
 
     window.addEventListener('hashchange', mount);
+    window.addEventListener('hashchange', mountMissing);
     setInterval(mount, 3000);
+    setInterval(mountMissing, 3000);
 }());

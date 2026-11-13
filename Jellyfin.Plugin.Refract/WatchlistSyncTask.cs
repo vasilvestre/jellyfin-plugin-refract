@@ -65,6 +65,36 @@ public sealed class WatchlistSyncTask : IScheduledTask
         _logger = logger;
     }
 
+    /// <summary>
+    /// Lists the Refract watchlist titles a user has no local item for, so the web
+    /// client can offer a "request through Seerr" action. Computed on demand: the
+    /// previous run's cache was empty after every restart until the next tick.
+    /// </summary>
+    /// <param name="userId">The Jellyfin user id.</param>
+    /// <param name="client">The Refract client.</param>
+    /// <param name="libraryManager">The library, to resolve titles to local items.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The titles Refract lists as planned but the library does not hold.</returns>
+    public static async Task<IReadOnlyList<MissingItem>> ComputeMissingAsync(
+        Guid userId,
+        RefractClient client,
+        ILibraryManager libraryManager,
+        CancellationToken cancellationToken)
+    {
+        var watchlist = await client.GetWatchlistAsync(userId, cancellationToken).ConfigureAwait(false);
+        var index = BuildProviderIndex(libraryManager);
+        var missing = new List<MissingItem>();
+        foreach (var title in watchlist)
+        {
+            if (Resolve(index, title) == null && !string.IsNullOrEmpty(title.TmdbId))
+            {
+                missing.Add(new MissingItem(title.Title, title.Year, title.TmdbId, title.IsShow));
+            }
+        }
+
+        return missing;
+    }
+
     /// <inheritdoc />
     public string Name => "Sync the Refract watchlist";
 
@@ -111,7 +141,7 @@ public sealed class WatchlistSyncTask : IScheduledTask
         try
         {
             var linked = config.RefractUsers.Where(u => u.IsLinked).ToArray();
-            var index = BuildProviderIndex();
+            var index = BuildProviderIndex(_libraryManager);
             for (var i = 0; i < linked.Length; i++)
             {
                 try
@@ -134,10 +164,10 @@ public sealed class WatchlistSyncTask : IScheduledTask
     }
 
     // One library pass per run, so a Refract title resolves without a search per title.
-    private Dictionary<string, BaseItem> BuildProviderIndex()
+    private static Dictionary<string, BaseItem> BuildProviderIndex(ILibraryManager libraryManager)
     {
         var index = new Dictionary<string, BaseItem>(StringComparer.Ordinal);
-        var items = _libraryManager.GetItemList(new InternalItemsQuery
+        var items = libraryManager.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series },
             Recursive = true

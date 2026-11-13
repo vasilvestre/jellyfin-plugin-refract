@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Net.Mime;
@@ -6,6 +7,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Database.Implementations.Enums;
+using Jellyfin.Plugin.Refract.Model;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,16 +25,26 @@ public class RefractController : ControllerBase
 {
     private readonly RefractAuthenticator _authenticator;
     private readonly IUserManager _userManager;
+    private readonly RefractClient _client;
+    private readonly ILibraryManager _libraryManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RefractController"/> class.
     /// </summary>
     /// <param name="authenticator">The device code sign-in.</param>
     /// <param name="userManager">Resolves the calling user.</param>
-    public RefractController(RefractAuthenticator authenticator, IUserManager userManager)
+    /// <param name="client">The Refract client, to read the caller's watchlist.</param>
+    /// <param name="libraryManager">The library, to resolve titles to local items.</param>
+    public RefractController(
+        RefractAuthenticator authenticator,
+        IUserManager userManager,
+        RefractClient client,
+        ILibraryManager libraryManager)
     {
         _authenticator = authenticator;
         _userManager = userManager;
+        _client = client;
+        _libraryManager = libraryManager;
     }
 
     /// <summary>
@@ -106,6 +118,27 @@ public class RefractController : ControllerBase
         var caller = CallerId;
         var linked = Plugin.Instance.Configuration.GetUser(caller)?.IsLinked == true;
         return Ok(new { linked });
+    }
+
+    /// <summary>
+    /// Lists the caller's Refract watchlist titles that have no local item yet, so the
+    /// web client can offer a "request through Seerr" action. Never returns a token.
+    /// </summary>
+    /// <returns>The titles and the TMDB id each one needs to be requested.</returns>
+    [HttpGet("WatchlistMissing")]
+    public async Task<ActionResult<object>> WatchlistMissing(CancellationToken cancellationToken)
+    {
+        var caller = CallerId;
+        IReadOnlyList<MissingItem> missing = Array.Empty<MissingItem>();
+        if (Plugin.Instance.Configuration.GetUser(caller)?.IsLinked == true)
+        {
+            missing = await WatchlistSyncTask.ComputeMissingAsync(caller, _client, _libraryManager, cancellationToken).ConfigureAwait(false);
+        }
+
+        var items = missing
+            .Select(m => new { title = m.Title, year = m.Year, tmdbId = m.TmdbId, mediaType = m.IsShow ? "tv" : "movie" })
+            .ToArray();
+        return Ok(new { items });
     }
 
     /// <summary>
