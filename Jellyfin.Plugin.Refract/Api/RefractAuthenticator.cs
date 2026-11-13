@@ -144,11 +144,15 @@ public sealed class RefractAuthenticator : IDisposable
                 config.RemoveUser(userId);
                 Plugin.Instance.UpdateConfiguration(config);
                 return "denied";
-            default:
+            case "expired_token":
                 config.RemoveUser(userId);
                 Plugin.Instance.UpdateConfiguration(config);
-                _logger.LogWarning("Refract: device code polling failed, {Error}", error);
                 return "expired";
+            default:
+                // Anything else is a hiccup, not a verdict: a 429 from over-polling, a proxy error.
+                // Keep the code, the page backs off, and DeviceCodeExpiresAt ends it for real.
+                _logger.LogWarning("Refract: device code poll failed with {Error}, keeping the code", error);
+                return "pending";
         }
     }
 
