@@ -1,6 +1,14 @@
 # Refract for Jellyfin
 
-Records the episodes and movies you watch in Jellyfin on [Refract](https://getrefract.app).
+[![Build](https://github.com/vasilvestre/jellyfin-plugin-refract/actions/workflows/build.yaml/badge.svg)](https://github.com/vasilvestre/jellyfin-plugin-refract/actions/workflows/build.yaml)
+[![Jellyfin 12.1](https://img.shields.io/badge/Jellyfin-12.1%2B-blue)](https://jellyfin.org)
+
+Records the episodes and movies you watch in Jellyfin on [Refract](https://getrefract.app),
+a cross-media tracker for shows, movies and anime on iOS and Android.
+
+A Jellyfin plugin, installed from the catalogue, that marks a play as watched for each
+user who linked their own Refract account: episodes with the right season and episode
+number, movies with their play date, anime with the right numbering order.
 
 Jellyfin sets the played flag; the plugin sends it to Refract with the date Jellyfin
 stored. Clearing the flag in Jellyfin does not clear the watch on Refract: the API
