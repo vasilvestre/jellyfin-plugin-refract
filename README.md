@@ -13,7 +13,7 @@ removes a movie play by its own play id, and the plugin keeps no copy of it.
 - A Refract account. Refract opens its API to a first group of members only: a
   member outside it cannot approve the app.
 
-No key to create and no secret. Each user signs in once from the plugin settings.
+No key to create and no secret. Each user links their own account once, from the web client.
 
 ## Install
 
@@ -29,17 +29,20 @@ By hand:
 2. Unzip it into `plugins/Refract_<version>/` in the Jellyfin data directory.
 3. Restart Jellyfin.
 
-Then link the accounts, once per user. Jellyfin 12 shows plugin pages to administrators only,
-so the link is done from the admin account even when the member owns the Refract account:
+Then link each account. A member does it from the web client:
 
-1. Open **Dashboard**, **Plugins**, **Refract**.
-2. Pick a Jellyfin user and click **Sign in to Refract**.
-3. Open the address shown, approve the code, and wait for the page to confirm.
-4. Repeat for each user who wants their own Refract account.
+1. Open Jellyfin in a browser while logged into the account to link.
+2. Click the **Link Refract** button in the bottom right corner.
+3. Type the eight-character code in the Refract app, under **Access and connected apps**,
+   then **Approve a device**. The app shows the account the code links to.
 
-After a plugin upgrade, reload the dashboard page without the cache (Ctrl+Shift+R on
-Firefox and Chrome). Jellyfin puts the plugin version in the script URL, so a stale
-copy of the settings page can outlive the upgrade.
+The button appears through [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation),
+which serves a patched `index.html`. It is optional: without it, an administrator links
+accounts from **Dashboard**, **Plugins**, **Refract** by picking the user, and the member
+approves the code in their own Refract app. Administrators always keep that page.
+
+After a plugin upgrade, reload the page without the cache (Ctrl+Shift+R on Firefox and
+Chrome). The widget URL carries the plugin version, so the browser picks up the new one.
 
 
 ## How a title is matched

@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
     "versions": [
       {
+        "version": "1.0.11.0",
+        "changelog": "Members link their Refract account from a button in the web client, without leaving Jellyfin. The button is injected through File Transformation, which becomes optional: an administrator can still link every account from the plugin page.",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.0.11.0/jellyfin-plugin-refract_1.0.11.0.zip",
+        "checksum": "0d4c11af4e224629d38242f3f826ebde",
+        "timestamp": "2026-11-13T10:20:00Z"
+      },
+      {
         "version": "1.0.3.0",
         "changelog": "An administrator links each account from the plugin page; the member approves the code in their own Refract app. Writes are serialised per show, which fixes lost episodes on a bulk season toggle.",
         "targetAbi": "12.1.0.0",

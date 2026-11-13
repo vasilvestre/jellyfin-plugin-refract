@@ -132,6 +132,11 @@ public sealed class RefractAuthenticator : IDisposable
         }
 
         var error = ReadError(body);
+        if (error != "authorization_pending")
+        {
+            _logger.LogInformation("Refract: device code answered {Error} for {UserId}", error, userId);
+        }
+
         switch (error)
         {
             case "authorization_pending":

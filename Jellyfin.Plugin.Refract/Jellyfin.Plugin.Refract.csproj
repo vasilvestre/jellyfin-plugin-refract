@@ -20,6 +20,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Web/refract.html" />
     <EmbeddedResource Include="Web/refract.js" />
+    <EmbeddedResource Include="Web/link.html" />
+    <EmbeddedResource Include="Web/widget.js" />
   </ItemGroup>
 
 </Project>

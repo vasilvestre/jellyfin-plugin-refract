@@ -28,6 +28,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
     private readonly ILibraryManager _libraryManager;
     private readonly RefractClient _client;
     private readonly ILogger<RefractMediator> _logger;
+    private readonly IHostApplicationLifetime _lifetime;
 
     // Remembers which provider id and numbering matched a series, so anime costs one request, not four.
     private readonly ConcurrentDictionary<Guid, (string IdType, string Numbering)> _numberingMatches = new();
@@ -39,21 +40,25 @@ public sealed class RefractMediator : IHostedService, IDisposable
     /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
     /// <param name="client">The Refract client.</param>
     /// <param name="logger">The logger.</param>
+    /// <param name="lifetime">The host lifetime, used to hook the web client once everything started.</param>
     public RefractMediator(
         IUserDataManager userDataManager,
         ILibraryManager libraryManager,
         RefractClient client,
-        ILogger<RefractMediator> logger)
+        ILogger<RefractMediator> logger,
+        IHostApplicationLifetime lifetime)
     {
         _userDataManager = userDataManager;
         _libraryManager = libraryManager;
         _client = client;
         _logger = logger;
+        _lifetime = lifetime;
     }
 
     /// <inheritdoc />
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        _lifetime.ApplicationStarted.Register(() => _ = RegisterWebClientAsync());
         _userDataManager.UserDataSaved += OnUserDataSaved;
         _logger.LogInformation("Refract: listening for plays");
         return Task.CompletedTask;
@@ -64,6 +69,18 @@ public sealed class RefractMediator : IHostedService, IDisposable
     {
         _userDataManager.UserDataSaved -= OnUserDataSaved;
         return Task.CompletedTask;
+    }
+
+    // File Transformation replays its own transformations a few seconds after the
+    // server starts, which drops a registration that ran before it. Registers a
+    // second time once that replay is over; a duplicate is a no-op for the patch.
+    private async Task RegisterWebClientAsync()
+    {
+        foreach (var seconds in new[] { 15, 60 })
+        {
+            await Task.Delay(TimeSpan.FromSeconds(seconds)).ConfigureAwait(false);
+            MenuInjection.Register(_logger);
+        }
     }
 
     /// <inheritdoc />

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.IO;
 using System.Net.Mime;
 using System.Security.Claims;
 using System.Threading;
@@ -32,6 +33,47 @@ public class RefractController : ControllerBase
     {
         _authenticator = authenticator;
         _userManager = userManager;
+    }
+
+    /// <summary>
+    /// Serves the public page where a member links their own Refract account. Anonymous
+    /// on purpose: Jellyfin keeps its plugin pages for administrators, and a member still
+    /// has to send the login form to their own server. The page asks for no permission.
+    /// </summary>
+    /// <returns>The page.</returns>
+    [AllowAnonymous]
+    [HttpGet("Link")]
+    public ActionResult Link()
+    {
+        var resource = typeof(Plugin).Namespace + ".Web.link.html";
+        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(resource);
+        if (stream is null)
+        {
+            return NotFound();
+        }
+
+        using var reader = new StreamReader(stream);
+        return Content(reader.ReadToEnd(), MediaTypeNames.Text.Html);
+    }
+
+    /// <summary>
+    /// Serves the widget that adds the in-page button and modal. Anonymous: the
+    /// script holds no secret, it reads the session the browser already has.
+    /// </summary>
+    /// <returns>The script.</returns>
+    [AllowAnonymous]
+    [HttpGet("Widget")]
+    public ActionResult Widget()
+    {
+        var resource = typeof(Plugin).Namespace + ".Web.widget.js";
+        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(resource);
+        if (stream is null)
+        {
+            return NotFound();
+        }
+
+        using var reader = new StreamReader(stream);
+        return Content(reader.ReadToEnd(), "application/javascript");
     }
 
     /// <summary>
