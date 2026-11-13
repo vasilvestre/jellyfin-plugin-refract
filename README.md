@@ -134,3 +134,18 @@ plugin talks to. Refract owns it; this project claims no rights over the mark.
 ## Licence
 
 GPL-3.0, the licence the Jellyfin plugin ecosystem uses.
+
+## Releasing
+
+The release workflow does the packaging, the GitHub release and the manifest edit,
+so a tag is the only thing to push:
+
+```bash
+# Set <Version> in Directory.Build.props first, then:
+git tag -a v1.0.14.0 -m "What changed, in one sentence"
+git push origin v1.0.14.0
+```
+
+The tag must match `<Version>` exactly; the workflow fails otherwise, on purpose.
+Do not create the release on GitHub by hand: the workflow does it, and an existing
+release makes `gh release create` fail.
