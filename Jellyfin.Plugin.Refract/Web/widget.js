@@ -262,33 +262,13 @@
     }
 
     // Scanning the code saves typing the eight characters on a phone.
-    function renderQr(url) {
+    function renderQr(png) {
         var box = document.getElementById('refract-qr');
         if (!box) {
             return;
         }
 
-        var draw = function () {
-            try {
-                var qr = window.qrcode(0, 'M');
-                qr.addData(url);
-                qr.make();
-                box.innerHTML = qr.createSvgTag({ cellSize: 5, margin: 2 });
-                box.firstChild.style.background = '#fff';
-            } catch (error) {
-                box.textContent = '';
-            }
-        };
-
-        if (window.qrcode) {
-            draw();
-            return;
-        }
-
-        var script = document.createElement('script');
-        script.src = base + '/Refract/Qr';
-        script.onload = draw;
-        document.head.appendChild(script);
+        box.innerHTML = '<img src="data:image/png;base64,' + png + '" style="width:180px;height:180px" alt="">';
     }
 
     async function start(target) {
@@ -311,7 +291,7 @@
                 '<a href="' + result.verificationUri + '" target="_blank" rel="noopener" ' +
                 'style="color:#4fc3f7;font-size:13px">' + t('open') + '</a>' +
                 '<p id="refract-state" style="margin:14px 0 0;color:#9aa7bd;font-size:13px">' + t('waiting') + '</p>');
-            renderQr(result.verificationUri);
+            renderQr(result.qrPng);
             await poll(result.interval);
         } catch (error) {
             note(target, error.message, '#ff9f7a');

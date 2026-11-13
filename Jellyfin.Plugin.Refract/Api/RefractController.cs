@@ -11,6 +11,7 @@ using Jellyfin.Plugin.Refract.Model;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Net.Codecrete.QrCodeGenerator;
 
 namespace Jellyfin.Plugin.Refract.Api;
 
@@ -66,14 +67,6 @@ public class RefractController : ControllerBase
         var version = typeof(Plugin).Assembly.GetName().Version?.ToString() ?? "0";
         return Content(html.Replace("__VERSION__", version), MediaTypeNames.Text.Html);
     }
-
-    /// <summary>
-    /// Serves the QR encoder the widget loads when it shows a device code.
-    /// </summary>
-    /// <returns>The script.</returns>
-    [AllowAnonymous]
-    [HttpGet("Qr")]
-    public ActionResult Qr() => Resource("qrcode.js", "application/javascript");
 
     /// <summary>
     /// Serves the widget that adds the in-page button and modal. Anonymous: the
@@ -167,7 +160,9 @@ public class RefractController : ControllerBase
         var (userCode, verificationUri, interval, expiresIn) =
             await _authenticator.StartAsync(userGuid, cancellationToken).ConfigureAwait(false);
 
-        return Ok(new { userCode, verificationUri, interval, expiresIn });
+        var qrPng = Convert.ToBase64String(
+            QrCode.EncodeText(verificationUri, QrCode.Ecc.Medium).ToPngBitmap(4, 8));
+        return Ok(new { userCode, verificationUri, interval, expiresIn, qrPng });
     }
 
     /// <summary>
