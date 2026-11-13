@@ -44,7 +44,10 @@ namespace Net.Codecrete.QrCodeGenerator
         /// </summary>
         internal List<DataSegment> ToSegments(int version)
         {
-            var segments = SegmentCompaction.BuildSegments(_data, _blocks, version);
+            // BuildSegments overwrites each block's mode. Work on a copy so the
+            // cached blocks keep their original modes for the next version-group attempt.
+            var blocks = (SegmentCompaction.Block[])_blocks.Clone();
+            var segments = SegmentCompaction.BuildSegments(_data, blocks, version);
             if (!Equals(_eci, ECI.None))
             {
                 segments.Insert(0, new DataSegmentEci(_eci));
