@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
     "versions": [
       {
+        "version": "1.0.12.0",
+        "changelog": "The link button can be turned off for the whole server from the plugin page. The modal shows a QR code of the approval link, so a phone opens the page with the code already filled.",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.0.12.0/jellyfin-plugin-refract_1.0.12.0.zip",
+        "checksum": "96034339499ceefa89ab8b0b83c60c3d",
+        "timestamp": "2026-11-13T10:30:00Z"
+      },
+      {
         "version": "1.0.11.0",
         "changelog": "Members link their Refract account from a button in the web client, without leaving Jellyfin. The button is injected through File Transformation, which becomes optional: an administrator can still link every account from the plugin page.",
         "targetAbi": "12.1.0.0",
