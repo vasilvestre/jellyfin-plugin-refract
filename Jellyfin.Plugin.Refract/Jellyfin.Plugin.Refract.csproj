@@ -14,7 +14,6 @@
   <ItemGroup>
     <PackageReference Include="Jellyfin.Controller" Version="12.1.0" />
     <PackageReference Include="Jellyfin.Data" Version="12.1.0" />
-    <PackageReference Include="Net.Codecrete.QrCodeGenerator" Version="3.2.1" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
