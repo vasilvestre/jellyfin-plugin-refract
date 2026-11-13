@@ -29,17 +29,47 @@ By hand:
 2. Unzip it into `plugins/Refract_<version>/` in the Jellyfin data directory.
 3. Restart Jellyfin.
 
-Then link each account. A member does it from the web client:
+Then link each account. Refract records the same plays either way; only the way a
+member links their account changes.
 
-1. Open Jellyfin in a browser while logged into the account to link.
-2. Click the **Link Refract** button in the bottom right corner.
-3. Type the eight-character code in the Refract app, under **Access and connected apps**,
-   then **Approve a device**. The app shows the account the code links to.
+## Linking an account
 
-The button appears through [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation),
-which serves a patched `index.html`. It is optional: without it, an administrator links
-accounts from **Dashboard**, **Plugins**, **Refract** by picking the user, and the member
-approves the code in their own Refract app. Administrators always keep that page.
+[File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation)
+controls how much a member can do without an administrator.
+
+| | Without File Transformation | With File Transformation |
+|---|---|---|
+| Who starts the link | An administrator, for any user | Each member, for their own account |
+| Where | **Dashboard**, **Plugins**, **Refract** | A **Link Refract** button inside the web client |
+| Extra request in the client | None | One script tag in `index.html`, served from memory |
+| Scrobbling, title matching, movie plays | Identical | Identical |
+
+Without it, an administrator opens **Dashboard**, **Plugins**, **Refract**, picks the
+user, clicks **Sign in to Refract**, then gives the eight-character code to that
+member, who approves it in the Refract app. Jellyfin 12 shows plugin pages to
+administrators only, which is why a member cannot reach that page.
+
+With it, the member does everything from the player:
+
+1. Click **Link Refract** in the bottom right corner.
+
+   ![The link button in the web client](img/link-button.png)
+
+2. Scan the QR code with a phone, or open the link shown. The code is already in
+   the address, so **Approve a device** only asks for a confirmation.
+
+   ![The code and its QR code](img/link-modal.png)
+
+3. The modal confirms on its own within a few seconds.
+
+An administrator can turn the button off for the whole server from the plugin page,
+for example when most members do not use Refract:
+
+![The plugin page](img/admin-page.png)
+
+The button only exists when File Transformation is installed: the plugin registers an
+`index.html` transformation through its documented reflection interface, and injects
+nothing when the plugin is absent. No file on disk changes.
 
 After a plugin upgrade, reload the page without the cache (Ctrl+Shift+R on Firefox and
 Chrome). The widget URL carries the plugin version, so the browser picks up the new one.
