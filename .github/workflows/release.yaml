@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The tag annotation is the changelog, and a shallow tag clone has no annotation.
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check the tag against Directory.Build.props
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          props=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' Directory.Build.props | head -1)
+          if [ "$version" != "$props" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match <Version>$props</Version> in Directory.Build.props" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.txt
+          [ -s notes.txt ] || echo "Release $version" > notes.txt
+
+      - name: Build and package the DLL
+        run: |
+          set -euo pipefail
+          dotnet build Jellyfin.Plugin.Refract/Jellyfin.Plugin.Refract.csproj -c Release
+          cd Jellyfin.Plugin.Refract/bin/Release/net10.0
+          zip -q -X "../../../../jellyfin-plugin-refract_${VERSION}.zip" Jellyfin.Plugin.Refract.dll
+          cd - > /dev/null
+          md5sum "jellyfin-plugin-refract_${VERSION}.zip" | cut -d' ' -f1 > checksum.txt
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "jellyfin-plugin-refract_${VERSION}.zip" \
+            --title "$GITHUB_REF_NAME" --notes-file notes.txt
+
+      # The catalogue trust rests on checksum and sourceUrl, the pair the hand-made flow got wrong once.
+      - name: Update manifest.json and build.yaml
+        run: |
+          set -euo pipefail
+          python3 - "$VERSION" "$(cat checksum.txt)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(cat notes.txt)" <<'PY'
+          import json, sys
+
+          version, checksum, timestamp, notes = sys.argv[1:5]
+          with open("manifest.json", encoding="utf-8") as f:
+              manifest = json.load(f)
+          versions = manifest[0]["versions"]
+          entry = {
+              "version": version,
+              "changelog": " ".join(notes.split()),
+              "targetAbi": versions[0]["targetAbi"],
+              "sourceUrl": f"https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v{version}/jellyfin-plugin-refract_{version}.zip",
+              "checksum": checksum,
+              "timestamp": timestamp,
+          }
+          manifest[0]["versions"] = [entry] + versions
+          with open("manifest.json", "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2, ensure_ascii=False)
+              f.write("\n")
+          PY
+          sed -i "s/^version: .*/version: $(echo "$VERSION" | cut -d. -f3)/" build.yaml
+
+      - name: Commit the manifest and build.yaml
+        run: |
+          set -euo pipefail
+          git add manifest.json build.yaml
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Release $VERSION"
+          git push origin HEAD:main
