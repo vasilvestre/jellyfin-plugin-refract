@@ -186,12 +186,31 @@ export default function (view) {
         });
     });
 
+    // The button lives in the whole server's web client, not in one user's
+    // settings, so only an administrator changes it.
+    function loadButtonSetting() {
+        ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+            view.querySelector('#showButton').checked = pick(config, 'showLinkButton') !== false;
+        });
+    }
+
+    view.querySelector('#showButton').addEventListener('change', function (event) {
+        ApiClient.getPluginConfiguration(pluginUniqueId).then(function (config) {
+            config.ShowLinkButton = event.target.checked;
+            ApiClient.updatePluginConfiguration(pluginUniqueId, config).then(function (result) {
+                Dashboard.processPluginConfigurationUpdateResult(result);
+            });
+        });
+    });
+
     view.addEventListener('viewshow', function () {
         ApiClient.getCurrentUser().then(function (user) {
             isAdmin = !!(user.Policy && user.Policy.IsAdministrator);
             const picker = view.querySelector('#selectUser');
             picker.closest('.selectContainer').classList.toggle('hide', !isAdmin);
+            view.querySelector('#showButton').closest('.checkboxContainer').classList.toggle('hide', !isAdmin);
             if (isAdmin) {
+                loadButtonSetting();
                 loadAdminUsers();
             } else {
                 userId = user.Id;

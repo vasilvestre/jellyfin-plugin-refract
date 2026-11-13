@@ -95,6 +95,11 @@ internal static class MenuInjection
     public static string Patch(Payload payload)
     {
         var html = payload == null ? null : payload.Contents;
+        if (Plugin.Instance?.Configuration.ShowLinkButton != true)
+        {
+            return html;
+        }
+
         int call = System.Threading.Interlocked.Increment(ref _calls);
         if (call > 5)
         {

@@ -57,6 +57,25 @@ public class RefractController : ControllerBase
     }
 
     /// <summary>
+    /// Serves the QR encoder the widget loads when it shows a device code.
+    /// </summary>
+    /// <returns>The script.</returns>
+    [AllowAnonymous]
+    [HttpGet("Qr")]
+    public ActionResult Qr()
+    {
+        var resource = typeof(Plugin).Namespace + ".Web.qrcode.js";
+        using var stream = typeof(Plugin).Assembly.GetManifestResourceStream(resource);
+        if (stream is null)
+        {
+            return NotFound();
+        }
+
+        using var reader = new StreamReader(stream);
+        return Content(reader.ReadToEnd(), "application/javascript");
+    }
+
+    /// <summary>
     /// Serves the widget that adds the in-page button and modal. Anonymous: the
     /// script holds no secret, it reads the session the browser already has.
     /// </summary>

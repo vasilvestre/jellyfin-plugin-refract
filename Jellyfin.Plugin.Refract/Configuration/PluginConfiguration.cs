@@ -16,6 +16,12 @@ public class PluginConfiguration : BasePluginConfiguration
     public RefractUser[] RefractUsers { get; set; } = Array.Empty<RefractUser>();
 
     /// <summary>
+    /// Gets or sets a value indicating whether the web client shows the link button.
+    /// Turn it off when the members of the server do not all use Refract.
+    /// </summary>
+    public bool ShowLinkButton { get; set; } = true;
+
+    /// <summary>
     /// Gets the credential of a Jellyfin user.
     /// </summary>
     /// <param name="userId">The Jellyfin user id.</param>

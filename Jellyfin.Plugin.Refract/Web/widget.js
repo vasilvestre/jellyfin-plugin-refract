@@ -195,6 +195,36 @@
         });
     }
 
+    // Scanning the code saves typing the eight characters on a phone.
+    function renderQr(url) {
+        var box = document.getElementById('refract-qr');
+        if (!box) {
+            return;
+        }
+
+        var draw = function () {
+            try {
+                var qr = window.qrcode(0, 'M');
+                qr.addData(url);
+                qr.make();
+                box.innerHTML = qr.createSvgTag({ cellSize: 5, margin: 2 });
+                box.firstChild.style.background = '#fff';
+            } catch (error) {
+                box.textContent = '';
+            }
+        };
+
+        if (window.qrcode) {
+            draw();
+            return;
+        }
+
+        var script = document.createElement('script');
+        script.src = base + '/Refract/Qr';
+        script.onload = draw;
+        document.head.appendChild(script);
+    }
+
     async function start(target) {
         target.innerHTML = '';
         note(target, 'Checking your Refract account…');
@@ -212,9 +242,11 @@
             target.insertAdjacentHTML('beforeend',
                 '<div style="margin:12px 0;padding:14px;background:#10131a;border-radius:8px;text-align:center;' +
                 'font-size:24px;letter-spacing:4px">' + result.userCode + '</div>' +
+                '<div id="refract-qr" style="margin:14px 0;text-align:center"></div>' +
                 '<a href="' + result.verificationUri + '" target="_blank" rel="noopener" ' +
                 'style="color:#4fc3f7;font-size:13px">Open the approval page</a>' +
                 '<p id="refract-state" style="margin:14px 0 0;color:#9aa7bd;font-size:13px">Waiting for approval.</p>');
+            renderQr(result.verificationUri);
             await poll(result.interval);
         } catch (error) {
             note(target, error.message, '#ff9f7a');
