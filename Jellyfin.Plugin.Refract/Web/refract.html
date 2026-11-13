@@ -1,0 +1,24 @@
+<div id="refractConfigurationPage" data-role="page" class="page type-interior pluginConfigurationPage"
+    data-controller="__plugin/refractjs">
+    <div data-role="content">
+        <div class="content-primary">
+            <h1>Refract</h1>
+            <p class="fieldDescription">
+                Marks the episodes and movies you watch in Jellyfin as watched on
+                <a href="https://getrefract.app" target="_blank" rel="noopener">getrefract.app</a>.
+            </p>
+
+            <div class="inputContainer">
+                <label class="inputLabel inputLabelUnfocused" for="apiKey">Refract API key</label>
+                <input is="emby-input" type="password" id="apiKey" autocomplete="off" />
+                <div class="fieldDescription">
+                    Create the key in the Refract app under Integrations, then Access and connected apps.
+                    Give it these scopes: <code>profile:read</code>, <code>library:read</code>,
+                    <code>history:read</code>, <code>library:write</code>, <code>history:write</code>.
+                </div>
+            </div>
+
+            <button is="emby-button" type="button" id="saveKey" class="raised button-submit block">Save</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+---
+name: "Refract"
+guid: "c9f4a1d2-7b3e-4f6a-9d21-3e5c8b0a7f14"
+version: 1
+targetAbi: "12.1.0.0"
+framework: "net10.0"
+owner: "vasilvestre"
+overview: "Record the episodes and movies you watch in Jellyfin on Refract."
+description: >
+  Marks a title watched on getrefract.app when you finish it in Jellyfin, and unmarks it
+  when you clear the played flag. Titles are matched by their TMDB id, so the episode
+  numbering of anime is translated before it is sent.
+category: "General"
+artifacts:
+  - "Jellyfin.Plugin.Refract.dll"
+changelog: |-
+  - First release: one-way scrobbling from Jellyfin to Refract.
