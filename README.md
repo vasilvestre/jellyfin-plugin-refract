@@ -1,6 +1,7 @@
 # Refract for Jellyfin
 
 [![Build](https://github.com/vasilvestre/jellyfin-plugin-refract/actions/workflows/build.yaml/badge.svg)](https://github.com/vasilvestre/jellyfin-plugin-refract/actions/workflows/build.yaml)
+[![Test](https://github.com/vasilvestre/jellyfin-plugin-refract/actions/workflows/test.yaml/badge.svg)](https://github.com/vasilvestre/jellyfin-plugin-refract/actions/workflows/test.yaml)
 [![Jellyfin 12.1](https://img.shields.io/badge/Jellyfin-12.1%2B-blue)](https://jellyfin.org)
 
 Records the episodes and movies you watch in Jellyfin on [Refract](https://getrefract.app),

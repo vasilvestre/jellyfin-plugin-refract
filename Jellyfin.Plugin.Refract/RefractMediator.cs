@@ -251,7 +251,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
         return candidates;
     }
 
-    private static string IdempotencyKey(Guid userId, Guid itemId, DateTime watchedAt)
+    internal static string IdempotencyKey(Guid userId, Guid itemId, DateTime watchedAt)
     {
         // Deterministic on purpose: retrying the same viewing reuses the key, so Refract logs it once.
         var seed = $"{userId:N}:{itemId:N}:{watchedAt.ToUniversalTime():yyyyMMddHHmmss}";

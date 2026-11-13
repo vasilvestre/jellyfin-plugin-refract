@@ -25,4 +25,9 @@
     <EmbeddedResource Include="Web/qrcode.js" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The tests cover the deterministic idempotency key, which stays internal otherwise. -->
+    <InternalsVisibleTo Include="Jellyfin.Plugin.Refract.Tests" />
+  </ItemGroup>
+
 </Project>

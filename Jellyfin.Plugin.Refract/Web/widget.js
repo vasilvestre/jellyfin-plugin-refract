@@ -111,6 +111,61 @@
         }
     }
 
+    // Jellyfin 12 does not expose its translation dictionary to injected scripts and
+    // has no "Link" string, so the labels the widget shows live here.
+    var strings = {
+        en: {
+            link: 'Link Refract',
+            checking: 'Checking your Refract account…',
+            code: 'Type this code in the Refract app, under <em>Access and connected apps</em>, then <em>Approve a device</em>.',
+            open: 'Open the approval page',
+            waiting: 'Waiting for approval.',
+            waitingFor: 'Waiting for approval (',
+            retrying: 'Retrying after an error: ',
+            denied: 'Refused in the Refract app.',
+            expired: 'The code expired.',
+            again: 'Start again',
+            retry: 'Retry',
+            linked: 'Your Jellyfin account sends what you watch to your Refract account.',
+            unlink: 'Unlink this account',
+            unlinked: 'Unlinked.',
+            looking: 'Looking for your Jellyfin session…',
+            session: 'Jellyfin kept no usable session here, so sign in once more.',
+            user: 'Jellyfin username',
+            pass: 'Jellyfin password',
+            cont: 'Continue',
+            refused: 'Jellyfin refused those credentials.'
+        },
+        fr: {
+            link: 'Lier Refract',
+            checking: 'Vérification de votre compte Refract…',
+            code: 'Saisissez ce code dans l\'application Refract, sous <em>Accès et applications connectées</em>, puis <em>Approuver un appareil</em>.',
+            open: 'Ouvrir la page d\'approbation',
+            waiting: 'En attente d\'approbation.',
+            waitingFor: 'En attente d\'approbation (',
+            retrying: 'Nouvelle tentative après une erreur : ',
+            denied: 'Refusé dans l\'application Refract.',
+            expired: 'Le code a expiré.',
+            again: 'Recommencer',
+            retry: 'Réessayer',
+            linked: 'Votre compte Jellyfin envoie ce que vous regardez à votre compte Refract.',
+            unlink: 'Délier ce compte',
+            unlinked: 'Compte délié.',
+            looking: 'Recherche de votre session Jellyfin…',
+            session: 'Jellyfin n\'a gardé aucune session utilisable, reconnectez-vous une fois.',
+            user: 'Nom d\'utilisateur Jellyfin',
+            pass: 'Mot de passe Jellyfin',
+            cont: 'Continuer',
+            refused: 'Jellyfin a refusé ces identifiants.'
+        }
+    };
+    var lang = (document.documentElement.lang || navigator.language || 'en').slice(0, 2).toLowerCase();
+
+    function t(key) {
+        var pack = strings[lang] || strings.en;
+        return pack[key] || strings.en[key];
+    }
+
     function sheet() {
         var overlay = document.createElement('div');
         overlay.id = 'refract-overlay';
@@ -163,15 +218,15 @@
     }
 
     function askCredentials(target) {
-        note(target, 'Jellyfin kept no usable session here, so sign in once more.');
+        note(target, t('session'));
         target.insertAdjacentHTML('beforeend',
-            '<input id="refract-user" placeholder="Jellyfin username" autocomplete="username" ' +
+            '<input id="refract-user" placeholder="' + t('user') + '" autocomplete="username" ' +
             'style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:10px;border:1px solid #2c3547;' +
             'border-radius:8px;background:#10131a;color:inherit;font:inherit">' +
-            '<input id="refract-pass" type="password" placeholder="Jellyfin password" autocomplete="current-password" ' +
+            '<input id="refract-pass" type="password" placeholder="' + t('pass') + '" autocomplete="current-password" ' +
             'style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #2c3547;border-radius:8px;' +
             'background:#10131a;color:inherit;font:inherit">');
-        button(target, 'Continue', async function () {
+        button(target, t('cont'), async function () {
             try {
                 var response = await fetch(base + '/Users/AuthenticateByName', {
                     method: 'POST',
@@ -182,7 +237,7 @@
                     })
                 });
                 if (!response.ok) {
-                    throw new Error('Jellyfin refused those credentials.');
+                    throw new Error(t('refused'));
                 }
 
                 var session = await response.json();
@@ -227,7 +282,7 @@
 
     async function start(target) {
         target.innerHTML = '';
-        note(target, 'Checking your Refract account…');
+        note(target, t('checking'));
         try {
             var me = await call('/Refract/Me');
             if (me.linked) {
@@ -237,20 +292,19 @@
 
             var result = await call('/Refract/Users/' + userId + '/Authorize', { method: 'POST' });
             target.innerHTML = '';
-            note(target, 'Type this code in the Refract app, under <em>Access and connected apps</em>, ' +
-                'then <em>Approve a device</em>.');
+            note(target, t('code'));
             target.insertAdjacentHTML('beforeend',
                 '<div style="margin:12px 0;padding:14px;background:#10131a;border-radius:8px;text-align:center;' +
                 'font-size:24px;letter-spacing:4px">' + result.userCode + '</div>' +
                 '<div id="refract-qr" style="margin:14px 0;text-align:center"></div>' +
                 '<a href="' + result.verificationUri + '" target="_blank" rel="noopener" ' +
-                'style="color:#4fc3f7;font-size:13px">Open the approval page</a>' +
-                '<p id="refract-state" style="margin:14px 0 0;color:#9aa7bd;font-size:13px">Waiting for approval.</p>');
+                'style="color:#4fc3f7;font-size:13px">' + t('open') + '</a>' +
+                '<p id="refract-state" style="margin:14px 0 0;color:#9aa7bd;font-size:13px">' + t('waiting') + '</p>');
             renderQr(result.verificationUri);
             await poll(result.interval);
         } catch (error) {
             note(target, error.message, '#ff9f7a');
-            button(target, 'Retry', function () { start(target); });
+            button(target, t('retry'), function () { start(target); });
         }
     }
 
@@ -271,8 +325,8 @@
                     stop();
                     var target = document.getElementById('refract-body');
                     target.innerHTML = '';
-                    note(target, status === 'denied' ? 'Refused in the Refract app.' : 'The code expired.', '#ff9f7a');
-                    button(target, 'Start again', function () { start(target); });
+                    note(target, status === 'denied' ? t('denied') : t('expired'), '#ff9f7a');
+                    button(target, t('again'), function () { start(target); });
                     return;
                 }
 
@@ -282,13 +336,13 @@
 
                 var state = document.getElementById('refract-state');
                 if (state) {
-                    state.textContent = 'Waiting for approval (' + status + ').';
+                    state.textContent = t('waitingFor') + status + ').';
                 }
             } catch (error) {
                 delay += 5;
                 var failed = document.getElementById('refract-state');
                 if (failed) {
-                    failed.textContent = 'Retrying after an error: ' + error.message;
+                    failed.textContent = t('retrying') + error.message;
                 }
             }
 
@@ -300,12 +354,12 @@
 
     function linked(target) {
         target.innerHTML = '';
-        note(target, 'Your Jellyfin account sends what you watch to your Refract account.', '#7ee0a8');
-        button(target, 'Unlink this account', async function () {
+        note(target, t('linked'), '#7ee0a8');
+        button(target, t('unlink'), async function () {
             try {
                 await call('/Refract/Users/' + userId + '/Deauthorize', { method: 'POST' });
                 target.innerHTML = '';
-                note(target, 'Unlinked.');
+                note(target, t('unlinked'));
             } catch (error) {
                 note(target, error.message, '#ff9f7a');
             }
@@ -316,7 +370,7 @@
         stop();
         var target = sheet();
         target.innerHTML = '';
-        note(target, 'Looking for your Jellyfin session…');
+        note(target, t('looking'));
         if (await adoptSession()) {
             await start(target);
         } else {
@@ -361,7 +415,7 @@
         var link = document.createElement('a');
         link.id = 'refract-link-anchor';
         link.href = '#';
-        link.textContent = 'Link Refract';
+        link.textContent = t('link');
         link.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483645;padding:10px 16px;' +
             'border-radius:24px;background:#4fc3f7;color:#10131a;font:600 14px system-ui,sans-serif;' +
             'text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.4)';
