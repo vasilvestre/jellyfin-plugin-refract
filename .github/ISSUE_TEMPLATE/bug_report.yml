@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a watch that did not reach Refract, or a link that failed.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: input
+    id: jellyfin_version
+    attributes:
+      label: Jellyfin version
+      description: The version shown at the bottom of the Jellyfin dashboard, or in Dashboard > About.
+      placeholder: 12.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: refract_plugin_version
+    attributes:
+      label: Refract plugin version
+      description: Dashboard > Plugins, on the Refract line.
+      placeholder: 1.0.12.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: file_transformation_installed
+    attributes:
+      label: Is File Transformation installed?
+      description: Without it, a member cannot use the Link Refract button in the web client, and an administrator links each account from the plugin page.
+      options:
+        - Yes
+        - No
+        - Do not know
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behaviour
+    attributes:
+      label: What you expected
+      description: Name the title, the season and episode, or the account link, and say what Refract should have shown.
+      placeholder: The series appeared as watched on Refract, with every episode of season 1.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behaviour
+    attributes:
+      label: What happened
+      description: Say what Refract showed instead, and when.
+      placeholder: The episode got the played flag in Jellyfin, but Refract still shows it as unwatched.
+    validations:
+      required: true
+
+  - type: textarea
+    id: plugin_log_excerpt
+    attributes:
+      label: Plugin log excerpt
+      description: >-
+        Paste the lines that start with "Refract:" from Dashboard > Logs, taken
+        around the time of the problem. Remove the access token before you paste
+        it: never put a token in an issue.
+      placeholder: |
+        [12:01:03] [INF] Refract: ...
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: anything_else
+    attributes:
+      label: Anything else
+      description: Debug logging, a proxy in front of Jellyfin, a title Jellyfin matched to the wrong series, or a screenshot.
+      placeholder: Debug logging was on. This started after the plugin upgrade.
+    validations:
+      required: false
