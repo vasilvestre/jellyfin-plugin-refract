@@ -76,7 +76,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
             return;
         }
 
-        if (!_client.IsConfigured)
+        if (!RefractClient.IsLinked(args.UserId))
         {
             return;
         }
@@ -103,7 +103,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
             switch (args.Item)
             {
                 case Episode episode:
-                    await SyncEpisodeAsync(episode, played, watchedAt).ConfigureAwait(false);
+                    await SyncEpisodeAsync(args.UserId, episode, played, watchedAt).ConfigureAwait(false);
                     break;
                 case Movie movie:
                     await SyncMovieAsync(movie, played, watchedAt, args.UserId).ConfigureAwait(false);
@@ -116,7 +116,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
         }
     }
 
-    private async Task SyncEpisodeAsync(Episode episode, bool played, DateTime watchedAt)
+    private async Task SyncEpisodeAsync(Guid userId, Episode episode, bool played, DateTime watchedAt)
     {
         var series = episode.Series ?? _libraryManager.GetItemById(episode.SeriesId) as Series;
         if (series == null || episode.ParentIndexNumber == null || episode.IndexNumber == null)
@@ -132,7 +132,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
         {
             var order = numbering ?? "tmdb";
             var hit = await _client
-                .FindEpisodeAsync(idType, value, season, number, order, CancellationToken.None)
+                .FindEpisodeAsync(userId, idType, value, season, number, order, CancellationToken.None)
                 .ConfigureAwait(false);
             if (hit == null)
             {
@@ -141,7 +141,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
 
             _numberingMatches[series.Id] = (idType, order);
             await _client
-                .SetEpisodeAsync(hit.Value.ShowId, hit.Value.Season, hit.Value.Number, played, played ? watchedAt : null, CancellationToken.None)
+                .SetEpisodeAsync(userId, hit.Value.ShowId, hit.Value.Season, hit.Value.Number, played, played ? watchedAt : null, CancellationToken.None)
                 .ConfigureAwait(false);
             _logger.LogInformation(
                 "Refract: {Show} S{Season:00}E{Number:00} {Action} ({IdType}/{Numbering})",
@@ -166,7 +166,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
             return;
         }
 
-        var movieId = await _client.FindMovieIdAsync(ProviderCandidates(movie), CancellationToken.None).ConfigureAwait(false);
+        var movieId = await _client.FindMovieIdAsync(userId, ProviderCandidates(movie), CancellationToken.None).ConfigureAwait(false);
         if (movieId == null)
         {
             _logger.LogDebug("Refract: no id match for movie {Name}", movie.Name);
@@ -174,7 +174,7 @@ public sealed class RefractMediator : IHostedService, IDisposable
         }
 
         await _client
-            .LogMovieAsync(movieId, watchedAt, IdempotencyKey(userId, movie.Id, watchedAt), CancellationToken.None)
+            .LogMovieAsync(userId, movieId, watchedAt, IdempotencyKey(userId, movie.Id, watchedAt), CancellationToken.None)
             .ConfigureAwait(false);
         _logger.LogInformation("Refract: movie {Name} watched", movie.Name);
     }

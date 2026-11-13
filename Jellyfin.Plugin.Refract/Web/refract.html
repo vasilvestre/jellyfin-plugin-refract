@@ -4,21 +4,41 @@
         <div class="content-primary">
             <h1>Refract</h1>
             <p class="fieldDescription">
-                Marks the episodes and movies you watch in Jellyfin as watched on
+                Marks the episodes and movies a user watches in Jellyfin as watched on
                 <a href="https://getrefract.app" target="_blank" rel="noopener">getrefract.app</a>.
+                Each user links their own Refract account.
             </p>
 
-            <div class="inputContainer">
-                <label class="inputLabel inputLabelUnfocused" for="apiKey">Refract API key</label>
-                <input is="emby-input" type="password" id="apiKey" autocomplete="off" />
-                <div class="fieldDescription">
-                    Create the key in the Refract app under Integrations, then Access and connected apps.
-                    Give it these scopes: <code>profile:read</code>, <code>library:read</code>,
-                    <code>history:read</code>, <code>library:write</code>, <code>history:write</code>.
-                </div>
+            <div class="selectContainer">
+                <label class="selectLabel" for="selectUser">Configure Refract for:</label>
+                <select is="emby-select" id="selectUser" name="selectUser"></select>
             </div>
 
-            <button is="emby-button" type="button" id="saveKey" class="raised button-submit block">Save</button>
+            <div id="linkedBlock" class="hide">
+                <p class="fieldDescription">
+                    This user is linked to a Refract account. Approving again replaces the tokens.
+                </p>
+                <button is="emby-button" type="button" id="deauthorize" class="raised block">Unlink</button>
+            </div>
+
+            <div id="unlinkedBlock" class="hide">
+                <p class="fieldDescription">
+                    This user is not linked yet. Start the sign-in, then open the page shown below on a
+                    phone and approve the code.
+                </p>
+                <button is="emby-button" type="button" id="authorize" class="raised button-submit block">
+                    Sign in to Refract
+                </button>
+            </div>
+
+            <div id="codeBlock" class="hide">
+                <p>
+                    Open <a id="verificationLink" href="https://getrefract.app/device" target="_blank"
+                        rel="noopener">getrefract.app/device</a> and approve this code:
+                </p>
+                <h2 id="userCode"></h2>
+                <p class="fieldDescription" id="pollStatus">Waiting for approval.</p>
+            </div>
         </div>
     </div>
 </div>

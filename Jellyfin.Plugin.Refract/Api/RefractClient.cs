@@ -23,20 +23,25 @@ public sealed class RefractClient : IDisposable
     };
 
     private readonly ILogger<RefractClient> _logger;
+    private readonly RefractAuthenticator _authenticator;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RefractClient"/> class.
     /// </summary>
+    /// <param name="authenticator">The device code sign-in and token store.</param>
     /// <param name="logger">The logger.</param>
-    public RefractClient(ILogger<RefractClient> logger)
+    public RefractClient(RefractAuthenticator authenticator, ILogger<RefractClient> logger)
     {
+        _authenticator = authenticator;
         _logger = logger;
     }
 
     /// <summary>
-    /// Gets a value indicating whether an API key is configured.
+    /// Says whether a Jellyfin user linked a Refract account.
     /// </summary>
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(Plugin.Instance?.Configuration.ApiKey);
+    /// <param name="userId">The Jellyfin user id.</param>
+    /// <returns>True when the user holds a refresh token.</returns>
+    public static bool IsLinked(Guid userId) => Plugin.Instance?.Configuration.GetUser(userId)?.IsLinked == true;
 
     /// <summary>
     /// Finds the Refract id of a show, trying each known provider id in order.
@@ -44,11 +49,11 @@ public sealed class RefractClient : IDisposable
     /// <param name="ids">Provider id candidates, most reliable first.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The Refract id, or null when Refract knows no such show.</returns>
-    public async Task<string> FindShowIdAsync(IEnumerable<(string IdType, string Value)> ids, CancellationToken cancellationToken)
+    public async Task<string> FindShowIdAsync(Guid userId, IEnumerable<(string IdType, string Value)> ids, CancellationToken cancellationToken)
     {
         foreach (var (idType, value) in ids)
         {
-            var body = await GetAsync($"search/{idType}/{Uri.EscapeDataString(value)}?type=show", cancellationToken).ConfigureAwait(false);
+            var body = await GetAsync(userId, $"search/{idType}/{Uri.EscapeDataString(value)}?type=show", cancellationToken).ConfigureAwait(false);
             var found = ReadId(body, "ids");
             if (found != null)
             {
@@ -65,11 +70,11 @@ public sealed class RefractClient : IDisposable
     /// <param name="ids">Provider id candidates, most reliable first.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The Refract id, or null when Refract knows no such movie.</returns>
-    public async Task<string> FindMovieIdAsync(IEnumerable<(string IdType, string Value)> ids, CancellationToken cancellationToken)
+    public async Task<string> FindMovieIdAsync(Guid userId, IEnumerable<(string IdType, string Value)> ids, CancellationToken cancellationToken)
     {
         foreach (var (idType, value) in ids)
         {
-            var body = await GetAsync($"search/{idType}/{Uri.EscapeDataString(value)}?type=movie", cancellationToken).ConfigureAwait(false);
+            var body = await GetAsync(userId, $"search/{idType}/{Uri.EscapeDataString(value)}?type=movie", cancellationToken).ConfigureAwait(false);
             var found = ReadId(body, "ids");
             if (found != null)
             {
@@ -91,6 +96,7 @@ public sealed class RefractClient : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The Refract show id with the TMDB season and number, or null.</returns>
     public async Task<(string ShowId, int Season, int Number)?> FindEpisodeAsync(
+        Guid userId,
         string idType,
         string showId,
         int season,
@@ -99,7 +105,7 @@ public sealed class RefractClient : IDisposable
         CancellationToken cancellationToken)
     {
         var path = $"search/{idType}/{Uri.EscapeDataString(showId)}?type=episode&season={season}&number={number}&numbering={numbering}";
-        var body = await GetAsync(path, cancellationToken).ConfigureAwait(false);
+        var body = await GetAsync(userId, path, cancellationToken).ConfigureAwait(false);
 
         using var document = JsonDocument.Parse(body);
         if (!document.RootElement.TryGetProperty("data", out var data) || data.GetArrayLength() == 0)
@@ -129,6 +135,7 @@ public sealed class RefractClient : IDisposable
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task.</returns>
     public async Task SetEpisodeAsync(
+        Guid userId,
         string showId,
         int season,
         int number,
@@ -139,14 +146,14 @@ public sealed class RefractClient : IDisposable
         var path = $"history/episodes/{Uri.EscapeDataString(showId)}/{season}/{number}";
         if (!played)
         {
-            await SendAsync(HttpMethod.Delete, path, null, null, cancellationToken).ConfigureAwait(false);
+            await SendAsync(userId, HttpMethod.Delete, path, null, null, cancellationToken).ConfigureAwait(false);
             return;
         }
 
         var body = watchedAt.HasValue
             ? $"{{\"watched_at\":\"{watchedAt.Value.ToUniversalTime():yyyy-MM-dd'T'HH:mm:ss'Z'}\"}}"
             : null;
-        await SendAsync(HttpMethod.Put, path, body, null, cancellationToken).ConfigureAwait(false);
+        await SendAsync(userId, HttpMethod.Put, path, body, null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -157,10 +164,10 @@ public sealed class RefractClient : IDisposable
     /// <param name="idempotencyKey">A key derived from the viewing, so a retry does not log twice.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task.</returns>
-    public async Task LogMovieAsync(string movieId, DateTime watchedAt, string idempotencyKey, CancellationToken cancellationToken)
+    public async Task LogMovieAsync(Guid userId, string movieId, DateTime watchedAt, string idempotencyKey, CancellationToken cancellationToken)
     {
         var body = $"{{\"movie_id\":\"{movieId}\",\"watched_at\":\"{watchedAt.ToUniversalTime():yyyy-MM-dd'T'HH:mm:ss'Z'}\"}}";
-        await SendAsync(HttpMethod.Post, "history/movies", body, idempotencyKey, cancellationToken).ConfigureAwait(false);
+        await SendAsync(userId, HttpMethod.Post, "history/movies", body, idempotencyKey, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -178,23 +185,32 @@ public sealed class RefractClient : IDisposable
         return ids.TryGetProperty("refract", out var refract) ? refract.GetString() : null;
     }
 
-    private async Task<string> GetAsync(string path, CancellationToken cancellationToken)
+    private async Task<string> GetAsync(Guid userId, string path, CancellationToken cancellationToken)
     {
-        return await SendAsync(HttpMethod.Get, path, null, null, cancellationToken).ConfigureAwait(false);
+        return await SendAsync(userId, HttpMethod.Get, path, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<string> SendAsync(
+        Guid userId,
         HttpMethod method,
         string path,
         string json,
         string idempotencyKey,
         CancellationToken cancellationToken)
     {
-        var apiKey = Plugin.Instance?.Configuration.ApiKey;
-        for (var attempt = 0; ; attempt++)
+        var refreshed = false;
+        var retriedRateLimit = false;
+
+        while (true)
         {
+            var accessToken = await _authenticator.GetAccessTokenAsync(userId, cancellationToken).ConfigureAwait(false);
+            if (accessToken == null)
+            {
+                throw new InvalidOperationException("Refract: this Jellyfin user has no linked Refract account.");
+            }
+
             using var request = new HttpRequestMessage(method, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             if (json != null)
             {
                 request.Content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -212,10 +228,20 @@ public sealed class RefractClient : IDisposable
                 return responseBody;
             }
 
-            // 429 and 5xx ask for a retry; anything else is our bug and retrying will not help.
             var status = (int)response.StatusCode;
-            if (attempt == 0 && (status == 429 || status >= 500))
+
+            // The access token lasts one hour. A 401 means it died early, for example after a revoke.
+            if (status == 401 && !refreshed)
             {
+                refreshed = true;
+                await _authenticator.RefreshAsync(userId, cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            // 429 and 5xx ask for a retry; anything else is our bug and retrying will not help.
+            if (!retriedRateLimit && (status == 429 || status >= 500))
+            {
+                retriedRateLimit = true;
                 var wait = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(status == 429 ? 5 : 2);
                 _logger.LogWarning("Refract answered {Status} on {Path}, retrying in {Wait}", status, path, wait);
                 await Task.Delay(wait, cancellationToken).ConfigureAwait(false);
