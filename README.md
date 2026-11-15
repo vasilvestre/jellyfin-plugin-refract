@@ -120,7 +120,8 @@ run it by hand from Dashboard, Scheduled Tasks.
 
 A title on a member's Refract watchlist that is not in the library cannot sync
 either way. The watchlist tab shows these titles in a "To download via Seerr"
-section, each with a **Request** button, so the member can ask for them.
+section, each with a **Request** button, so the member can ask for them. The
+section shows 20 titles at a time, with Previous and Next buttons under the row.
 
 The card and the request come from Jellyfin Enhanced's Seerr integration, reused
 directly: this plugin holds no Seerr key. Three things must hold:

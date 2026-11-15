@@ -476,20 +476,66 @@
 
         scroller.appendChild(row);
         section.appendChild(scroller);
-
-        items.forEach(function (source) {
-            // The poster, synopsis and rating come from Seerr through Jellyfin
-            // Enhanced, because Refract does not hold them. The card still renders
-            // (without a poster) when that call fails.
-            var mediaType = source.mediaType === 'tv' ? 'tv' : 'movie';
-            call('/JellyfinEnhanced/jellyseerr/' + mediaType + '/' + source.tmdbId).then(function (detail) {
-                row.appendChild(build(missingItem(detail, source, source.tmdbId, mediaType), true, true));
-            }).catch(function () {
-                row.appendChild(build(missingItem({}, source, source.tmdbId, mediaType), true, true));
-            });
-        });
-
         tab.appendChild(section);
+
+        // The watchlist can hold more titles than one row can show, so the row is
+        // paged. Each page refetches its cards, and an answer that arrives after a
+        // page turn must not land in the new row.
+        var pageSize = 20;
+        var pages = Math.ceil(items.length / pageSize);
+        var page = 0;
+        var turn = 0;
+
+        var pager = document.createElement('div');
+        pager.style.cssText = 'display:flex;align-items:center;gap:12px;padding:0 3.3% 18px';
+        var prev = arrow('‹', -1);
+        var label = document.createElement('span');
+        label.style.cssText = 'color:#9aa7bd;font-size:14px';
+        var next = arrow('›', 1);
+        pager.appendChild(prev);
+        pager.appendChild(label);
+        pager.appendChild(next);
+        if (pages > 1) {
+            section.appendChild(pager);
+        }
+
+        function arrow(glyph, step) {
+            var node = document.createElement('button');
+            node.textContent = glyph;
+            node.style.cssText = 'width:34px;height:34px;border:0;border-radius:50%;background:#2c3547;' +
+                'color:#e9eef8;font:20px/1 system-ui,sans-serif;cursor:pointer';
+            node.addEventListener('click', function () { show(page + step); });
+            return node;
+        }
+
+        function show(index) {
+            page = Math.min(Math.max(index, 0), pages - 1);
+            var mine = ++turn;
+            row.innerHTML = '';
+            label.textContent = (page + 1) + ' / ' + pages;
+            prev.disabled = page === 0;
+            next.disabled = page === pages - 1;
+            prev.style.opacity = page === 0 ? '.4' : '1';
+            next.style.opacity = page === pages - 1 ? '.4' : '1';
+
+            items.slice(page * pageSize, (page + 1) * pageSize).forEach(function (source) {
+                // The poster, synopsis and rating come from Seerr through Jellyfin
+                // Enhanced, because Refract does not hold them. The card still renders
+                // (without a poster) when that call fails.
+                var mediaType = source.mediaType === 'tv' ? 'tv' : 'movie';
+                var place = function (detail) {
+                    if (mine === turn) {
+                        row.appendChild(build(missingItem(detail || {}, source, source.tmdbId, mediaType), true, true));
+                    }
+                };
+
+                call('/JellyfinEnhanced/jellyseerr/' + mediaType + '/' + source.tmdbId)
+                    .then(place)
+                    .catch(function () { place(null); });
+            });
+        }
+
+        show(0);
     }
 
     async function mountMissing() {
