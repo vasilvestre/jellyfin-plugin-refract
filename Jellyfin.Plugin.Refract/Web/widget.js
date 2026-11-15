@@ -476,20 +476,111 @@
 
         scroller.appendChild(row);
         section.appendChild(scroller);
-
-        items.forEach(function (source) {
-            // The poster, synopsis and rating come from Seerr through Jellyfin
-            // Enhanced, because Refract does not hold them. The card still renders
-            // (without a poster) when that call fails.
-            var mediaType = source.mediaType === 'tv' ? 'tv' : 'movie';
-            call('/JellyfinEnhanced/jellyseerr/' + mediaType + '/' + source.tmdbId).then(function (detail) {
-                row.appendChild(build(missingItem(detail, source, source.tmdbId, mediaType), true, true));
-            }).catch(function () {
-                row.appendChild(build(missingItem({}, source, source.tmdbId, mediaType), true, true));
-            });
-        });
-
         tab.appendChild(section);
+
+        // The watchlist can hold more titles than one row can show, so the row is
+        // paged, one screenful at a time. Each page refetches its cards, and an
+        // answer that arrives after a page turn must not land in the new row.
+        var pageSize = 20;
+        var pages = Math.ceil(items.length / pageSize);
+        var page = 0;
+        var turn = 0;
+        var sized = false;
+
+        var pager = document.createElement('div');
+        pager.style.cssText = 'display:flex;align-items:center;gap:12px;padding:0 3.3% 18px';
+        var prev = arrow('‹', -1);
+        var label = document.createElement('span');
+        label.style.cssText = 'color:#9aa7bd;font-size:14px';
+        var next = arrow('›', 1);
+        pager.appendChild(prev);
+        pager.appendChild(label);
+        pager.appendChild(next);
+
+        function arrow(glyph, step) {
+            var node = document.createElement('button');
+            node.textContent = glyph;
+            node.style.cssText = 'width:34px;height:34px;border:0;border-radius:50%;background:#2c3547;' +
+                'color:#e9eef8;font:20px/1 system-ui,sans-serif;cursor:pointer';
+            node.addEventListener('click', function () { show(page + step); });
+            return node;
+        }
+
+        function sync() {
+            label.textContent = (page + 1) + ' / ' + pages;
+            prev.disabled = page === 0;
+            next.disabled = page === pages - 1;
+            prev.style.opacity = prev.disabled ? '.4' : '1';
+            next.style.opacity = next.disabled ? '.4' : '1';
+            if (pages > 1 && !pager.parentNode) {
+                section.appendChild(pager);
+            }
+        }
+
+        // One page holds what actually fits on screen: the row width divided by the
+        // card width, both measured on the first render because they follow the
+        // theme and the window size.
+        function fit() {
+            var cards = row.children;
+            var width = row.clientWidth;
+            if (cards.length < 2 || !width) {
+                return false;
+            }
+
+            var edge = row.getBoundingClientRect().right + 2;
+            var count = 0;
+            for (var i = 0; i < cards.length; i++) {
+                if (cards[i].getBoundingClientRect().right > edge) {
+                    break;
+                }
+                count++;
+            }
+
+            if (count < 1 || count >= items.length) {
+                return false;
+            }
+
+            pageSize = count;
+            pages = Math.ceil(items.length / pageSize);
+            return true;
+        }
+
+        function show(index) {
+            page = Math.min(Math.max(index, 0), pages - 1);
+            var mine = ++turn;
+            row.innerHTML = '';
+            sync();
+
+            var slice = items.slice(page * pageSize, (page + 1) * pageSize);
+            Promise.all(slice.map(function (source) {
+                // The poster, synopsis and rating come from Seerr through Jellyfin
+                // Enhanced, because Refract does not hold them. The card still renders
+                // (without a poster) when that call fails.
+                var mediaType = source.mediaType === 'tv' ? 'tv' : 'movie';
+                return call('/JellyfinEnhanced/jellyseerr/' + mediaType + '/' + source.tmdbId)
+                    .catch(function () { return null; })
+                    .then(function (detail) {
+                        return missingItem(detail || {}, source, source.tmdbId, mediaType);
+                    });
+            })).then(function (cards) {
+                if (mine !== turn) {
+                    return;
+                }
+
+                cards.forEach(function (card) { row.appendChild(build(card, true, true)); });
+
+                if (!sized && row.clientWidth) {
+                    sized = true;
+                    if (fit()) {
+                        show(0);
+                    }
+                } else {
+                    sync();
+                }
+            });
+        }
+
+        show(0);
     }
 
     async function mountMissing() {
