@@ -9,6 +9,14 @@
     "imageUrl": "https://raw.githubusercontent.com/vasilvestre/jellyfin-plugin-refract/main/img/logo.png",
     "versions": [
       {
+        "version": "1.2.4.0",
+        "changelog": "1.2.4.0",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/vasilvestre/jellyfin-plugin-refract/releases/download/v1.2.4.0/jellyfin-plugin-refract_1.2.4.0.zip",
+        "checksum": "4dc0959cc9b66a02fbe22b5428b75440",
+        "timestamp": "2026-11-15T17:08:39Z"
+      },
+      {
         "version": "1.2.1.0",
         "changelog": "Render the missing-titles section once",
         "targetAbi": "12.1.0.0",
