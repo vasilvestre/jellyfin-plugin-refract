@@ -96,14 +96,31 @@ internal static class MenuInjection
             return html;
         }
 
+        return InsertButton(html);
+    }
+
+    /// <summary>
+    /// Adds the script to an HTML document. A file without a head is not HTML:
+    /// File Transformation matches the pattern as a regex, so "index.html" also
+    /// selects the web bundles named *-index-html.*.chunk.js, and appending to
+    /// those breaks them with a syntax error.
+    /// </summary>
+    /// <param name="html">The file being served.</param>
+    /// <returns>The patched file, or the input when it is not HTML.</returns>
+    internal static string InsertButton(string html)
+    {
         if (html is null || html.Contains(Marker, StringComparison.Ordinal))
         {
             return html;
         }
 
-        var script = "<script " + Marker + ">" + Script() + "</script>";
         var head = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-        return head < 0 ? html + script : html.Insert(head, script);
+        if (head < 0)
+        {
+            return html;
+        }
+
+        return html.Insert(head, "<script " + Marker + ">" + Script() + "</script>");
     }
 
     // Loads the widget script, which builds the button and the modal itself. The
