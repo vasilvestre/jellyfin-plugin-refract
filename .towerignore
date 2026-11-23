@@ -1,0 +1,30 @@
+# tower index ignore — authoritative, independent of .gitignore.
+# Same syntax as .gitignore. Negate with ! to re-include a path.
+
+# The .NET build output, worth 27 MB in tests/ alone. Tower does not read
+# .gitignore, so these have to be listed here.
+bin/
+obj/
+dist/
+*.user
+
+# The NuGet cache the build container fills. Hidden, but named so a future
+# Tower that walks hidden files still skips it.
+.nugetcache/
+
+# Tower's own daemon state and per-run databases.
+.tower/
+
+# Editor backups and temporary output are not project sources.
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Secrets (must never be fed to the agent/LLM). The plugin XML under a live
+# Jellyfin's data/plugins/configurations/ holds OAuth tokens.
+*.key
+*.pem
+.env
+.env.*
+secrets/
